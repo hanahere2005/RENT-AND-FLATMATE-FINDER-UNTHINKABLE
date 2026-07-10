@@ -26,7 +26,7 @@ const ListingCard = ({ listing }) => {
 
   // Fallback image if none uploaded
   const mainImage = images && images.length > 0 
-    ? `http://localhost:5000${images[0].image_url}` 
+    ? `http://localhost:5050${images[0].image_url}` 
     : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80';
 
   return (

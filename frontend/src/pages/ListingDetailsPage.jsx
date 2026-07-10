@@ -84,7 +84,7 @@ const ListingDetailsPage = () => {
   // Get image URL helper
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
-    return `http://127.0.0.1:5000/uploads/${imagePath.split('/').pop()}`;
+    return `http://127.0.0.1:5050/uploads/${imagePath.split('/').pop()}`;
   };
 
   return (
@@ -124,7 +124,7 @@ const ListingDetailsPage = () => {
             
             {/* Rent badge */}
             <div className="absolute bottom-4 left-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800/80 font-black text-sm text-slate-900 dark:text-white shadow">
-              ${listing.rent_amount} <span className="text-[10px] text-slate-450 dark:text-slate-400 font-bold uppercase">/ month</span>
+              ${listing.rent} <span className="text-[10px] text-slate-450 dark:text-slate-400 font-bold uppercase">/ month</span>
             </div>
           </div>
 
@@ -146,7 +146,7 @@ const ListingDetailsPage = () => {
                 <DollarSign size={18} className="text-blue-550 dark:text-blue-400" />
                 <div>
                   <span className="block text-[10px] text-slate-400 uppercase font-black">Monthly Rent</span>
-                  <span>${listing.rent_amount}</span>
+                  <span>${listing.rent}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">

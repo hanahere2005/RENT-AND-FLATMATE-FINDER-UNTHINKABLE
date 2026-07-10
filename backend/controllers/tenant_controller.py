@@ -176,3 +176,45 @@ def send_interest_request(listing_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to send interest request", "details": str(e)}), 500
+        
+@jwt_required()
+def get_compatibility(listing_id):
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user or user.role != 'tenant':
+        return jsonify({"error": "Unauthorized: Tenant role required"}), 403
+        
+    listing = Listing.query.get(listing_id)
+    if not listing:
+        return jsonify({"error": "Listing not found"}), 404
+        
+    profile = TenantProfile.query.filter_by(user_id=user_id).first()
+    if not profile:
+        return jsonify({"error": "Tenant profile not found"}), 404
+        
+    # Check or compute compatibility score
+    compat = CompatibilityScore.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
+    if not compat:
+        try:
+            score, explanation, is_ai = calculate_compatibility(listing, profile)
+            compat = CompatibilityScore(
+                tenant_id=user_id,
+                listing_id=listing_id,
+                score=score,
+                explanation=explanation,
+                is_ai=is_ai
+            )
+            db.session.add(compat)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": "Failed to calculate compatibility", "details": str(e)}), 500
+            
+    # Check interest request status
+    req = InterestRequest.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
+    interest_status = req.status if req else 'none'
+    
+    return jsonify({
+        "compatibility": compat.to_dict(),
+        "interest_status": interest_status
+    }), 200

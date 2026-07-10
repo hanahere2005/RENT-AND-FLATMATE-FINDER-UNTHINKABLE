@@ -21,13 +21,17 @@ const OwnerDashboard = () => {
   const [submitting, setSubmitting] = useState(false);
 
   // New room listing form fields
-  const [address, setAddress] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
+  const [address, setAddress] = useState('');
   const [rentAmount, setRentAmount] = useState('');
   const [availableFrom, setAvailableFrom] = useState('');
+  const [roomType, setRoomType] = useState('single');
+  const [furnishingStatus, setFurnishingStatus] = useState('fully-furnished');
+  const [contactInfo, setContactInfo] = useState('');
   const [amenities, setAmenities] = useState('');
-  const [description, setDescription] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
 
   // Fetch owner's listing properties
@@ -39,7 +43,7 @@ const OwnerDashboard = () => {
     } catch (err) {
       console.error(err);
       showToast("Failed to load your listings", "error");
-    } finally {
+    } fill: {
       setLoadingListings(false);
     }
   };
@@ -53,7 +57,7 @@ const OwnerDashboard = () => {
     } catch (err) {
       console.error(err);
       showToast("Failed to load tenant requests", "error");
-    } finally {
+    } fill: {
       setLoadingRequests(false);
     }
   };
@@ -70,7 +74,7 @@ const OwnerDashboard = () => {
   // Handle post listing submit
   const handleCreateListing = async (e) => {
     e.preventDefault();
-    if (!address || !city || !state || !rentAmount || !availableFrom) {
+    if (!title || !address || !city || !state || !rentAmount || !availableFrom || !contactInfo) {
       showToast("Please fill in all required fields", "warning");
       return;
     }
@@ -78,12 +82,15 @@ const OwnerDashboard = () => {
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append('address', address);
-      formData.append('city', city);
-      formData.append('state', state);
-      formData.append('rent_amount', rentAmount);
-      formData.append('available_from', availableFrom);
+      formData.append('title', title);
       formData.append('description', description);
+      formData.append('location', `${city}, ${state}`);
+      formData.append('address', address);
+      formData.append('rent', rentAmount);
+      formData.append('available_from', availableFrom);
+      formData.append('room_type', roomType);
+      formData.append('furnishing_status', furnishingStatus);
+      formData.append('contact_info', contactInfo);
       
       const amenitiesArr = amenities.split(',').map(item => item.trim()).filter(Boolean);
       formData.append('amenities', JSON.stringify(amenitiesArr));
@@ -102,13 +109,17 @@ const OwnerDashboard = () => {
       showToast("Room listing posted successfully!", "success");
       
       // Reset form fields
-      setAddress('');
+      setTitle('');
+      setDescription('');
       setCity('');
       setState('');
+      setAddress('');
       setRentAmount('');
       setAvailableFrom('');
+      setRoomType('single');
+      setFurnishingStatus('fully-furnished');
+      setContactInfo('');
       setAmenities('');
-      setDescription('');
       setSelectedFiles([]);
       
       fetchListings();
@@ -215,7 +226,7 @@ const OwnerDashboard = () => {
             </div>
           ) : listings.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/50 space-y-3 shadow-sm">
-              <Home size={40} className="mx-auto text-slate-300 dark:text-slate-650" />
+              <Home size={40} className="mx-auto text-slate-300 dark:text-slate-655" />
               <h3 className="font-extrabold text-base text-slate-905 dark:text-white">No Listings Yet</h3>
               <p className="text-xs text-slate-450 dark:text-slate-400 max-w-xs mx-auto font-medium leading-relaxed">
                 Click "Post Room" above to list your properties and find roommate matches.
@@ -253,7 +264,7 @@ const OwnerDashboard = () => {
             </div>
           ) : requests.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/50 space-y-3 shadow-sm">
-              <CheckSquare size={40} className="mx-auto text-slate-300 dark:text-slate-650" />
+              <CheckSquare size={40} className="mx-auto text-slate-300 dark:text-slate-655" />
               <h3 className="font-extrabold text-base text-slate-905 dark:text-white">No Incoming Requests</h3>
               <p className="text-xs text-slate-450 dark:text-slate-400 max-w-xs mx-auto font-medium leading-relaxed">
                 Tenant requests and high compatibility alerts will pop up here once they express interest.
@@ -285,7 +296,7 @@ const OwnerDashboard = () => {
 
                       {/* Bio */}
                       {req.tenant_profile?.bio && (
-                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-450 bg-slate-50/50 dark:bg-slate-900/20 p-3 rounded-xl border border-slate-100/50 dark:border-slate-700/30 italic">
+                        <p className="text-xs font-semibold text-slate-505 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-900/20 p-3 rounded-xl border border-slate-100/50 dark:border-slate-700/30 italic">
                           "{req.tenant_profile.bio}"
                         </p>
                       )}
@@ -369,6 +380,19 @@ const OwnerDashboard = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 
+                {/* Title */}
+                <div className="sm:col-span-3 space-y-1">
+                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Listing Title *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Spacious Room in Cozy Shared Apartment"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-205 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    required
+                  />
+                </div>
+
                 {/* Street address */}
                 <div className="sm:col-span-3 space-y-1">
                   <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Street Address *</label>
@@ -395,20 +419,20 @@ const OwnerDashboard = () => {
                     placeholder="e.g. San Francisco"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
 
                 {/* State */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">State *</label>
+                  <label className="text-xs font-bold text-slate-655 dark:text-slate-350 block">State *</label>
                   <input
                     type="text"
                     placeholder="e.g. CA"
                     value={state}
                     onChange={(e) => setState(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
@@ -421,51 +445,93 @@ const OwnerDashboard = () => {
                     placeholder="e.g. 1200"
                     value={rentAmount}
                     onChange={(e) => setRentAmount(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
 
                 {/* Available from */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Available From *</label>
+                  <label className="text-xs font-bold text-slate-650 dark:text-slate-355 block">Available From *</label>
                   <input
                     type="date"
                     value={availableFrom}
                     onChange={(e) => setAvailableFrom(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    required
+                  />
+                </div>
+
+                {/* Room Type */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Room Type *</label>
+                  <select
+                    value={roomType}
+                    onChange={(e) => setRoomType(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    required
+                  >
+                    <option value="single">Single Room</option>
+                    <option value="shared">Shared Room</option>
+                    <option value="entire_flat">Entire Flat</option>
+                  </select>
+                </div>
+
+                {/* Furnishing Status */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-655 dark:text-slate-350 block">Furnishing *</label>
+                  <select
+                    value={furnishingStatus}
+                    onChange={(e) => setFurnishingStatus(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    required
+                  >
+                    <option value="unfurnished">Unfurnished</option>
+                    <option value="semi-furnished">Semi-Furnished</option>
+                    <option value="fully-furnished">Fully Furnished</option>
+                  </select>
+                </div>
+
+                {/* Contact Info */}
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Contact Phone / Info *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. +1 (555) 019-2834 or owner@email.com"
+                    value={contactInfo}
+                    onChange={(e) => setContactInfo(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
 
                 {/* Amenities */}
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Amenities</label>
+                  <label className="text-xs font-bold text-slate-655 dark:text-slate-350 block">Amenities (comma-separated)</label>
                   <input
                     type="text"
                     placeholder="e.g. Private Bath, WiFi, Gym, AC"
                     value={amenities}
                     onChange={(e) => setAmenities(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
-                  <span className="text-[10px] text-slate-405 font-bold block">Comma-separated values</span>
                 </div>
 
                 {/* Description */}
                 <div className="sm:col-span-3 space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Property Description</label>
+                  <label className="text-xs font-bold text-slate-655 dark:text-slate-350 block">Property Description</label>
                   <textarea
                     rows={4}
                     placeholder="Provide details about the room size, roommates, apartment rules..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
 
                 {/* Photos */}
                 <div className="sm:col-span-3 space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Upload Property Photos</label>
+                  <label className="text-xs font-bold text-slate-655 dark:text-slate-355 block">Upload Property Photos</label>
                   <input
                     type="file"
                     multiple
