@@ -1,0 +1,149 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Rent & Flatmate Finder API",
+    "description": "REST API documentation for the Rent & Flatmate Finder application, featuring role-based routing (Tenant, Owner, Admin), property listings, matchmaking engines, and messaging integrations.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Development Local server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "email": { "type": "string" },
+          "role": { "type": "string", "enum": ["tenant", "owner", "admin"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "TenantProfile": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "preferred_location": { "type": "string" },
+          "budget_min": { "type": "number" },
+          "budget_max": { "type": "number" },
+          "move_in_date": { "type": "string", "format": "date" },
+          "occupation": { "type": "string" },
+          "bio": { "type": "string" }
+        }
+      },
+      "OwnerProfile": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "company_name": { "type": "string" },
+          "contact_phone": { "type": "string" }
+        }
+      },
+      "Listing": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "owner_id": { "type": "integer" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "location": { "type": "string" },
+          "address": { "type": "string" },
+          "rent": { "type": "number" },
+          "available_from": { "type": "string", "format": "date" },
+          "room_type": { "type": "string", "enum": ["single", "shared", "entire_flat"] },
+          "furnishing_status": { "type": "string", "enum": ["unfurnished", "semi-furnished", "fully-furnished"] },
+          "num_rooms": { "type": "integer" },
+          "amenities": { "type": "array", "items": { "type": "string" } },
+          "contact_info": { "type": "string" },
+          "is_filled": { "type": "boolean" },
+          "images": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "role"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" },
+                  "role": { "type": "string", "enum": ["tenant", "owner"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User successfully registered" },
+          "400": { "description": "User already exists or validation failed" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Log in and obtain tokens",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful login with access and refresh tokens" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/listings": {
+      "get": {
+        "summary": "Retrieve listings with filtering and sorting",
+        "parameters": [
+          { "name": "location", "in": "query", "schema": { "type": "string" } },
+          { "name": "budget_max", "in": "query", "schema": { "type": "number" } },
+          { "name": "room_type", "in": "query", "schema": { "type": "string" } },
+          { "name": "furnishing", "in": "query", "schema": { "type": "string" } },
+          { "name": "sort_by", "in": "query", "schema": { "type": "string", "enum": ["rent", "created_at", "compatibility"] } }
+        ],
+        "responses": {
+          "200": { "description": "A list of property listings" }
+        }
+      },
+      "post": {
+        "summary": "Create a room listing (Owners only)",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Listing created" }
+        }
+      }
+    }
+  }
+}

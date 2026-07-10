@@ -1,0 +1,1 @@
+from .chat_sockets import register_socket_events
