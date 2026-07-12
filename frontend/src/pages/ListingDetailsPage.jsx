@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { 
@@ -13,6 +13,7 @@ const ListingDetailsPage = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [listing, setListing] = useState(null);
   const [compatScore, setCompatScore] = useState(null);
@@ -24,13 +25,24 @@ const ListingDetailsPage = () => {
   const fetchDetails = async () => {
     setLoading(true);
     try {
-      // Get property info
-      const res = await api.get(`/listings/${id}`);
+      // Retrieve the current active tenant filters from localStorage
+      let params = {};
+      const savedFilters = localStorage.getItem('tenant_filters');
+      if (savedFilters) {
+        try {
+          params = JSON.parse(savedFilters);
+        } catch (e) {
+          console.error("Failed to parse tenant filters from localStorage", e);
+        }
+      }
+
+      // Get property info passing the params
+      const res = await api.get(`/listings/${id}`, { params });
       setListing(res.data);
 
-      // If user is a tenant, check interest status and compatibility
+      // If user is a tenant, check interest status and compatibility passing the params
       if (user && user.role === 'tenant') {
-        const compatRes = await api.get(`/tenant/compatibility/${id}`);
+        const compatRes = await api.get(`/tenant/compatibility/${id}`, { params });
         setCompatScore(compatRes.data.compatibility);
         setInterestStatus(compatRes.data.interest_status || 'none');
       }
@@ -63,6 +75,33 @@ const ListingDetailsPage = () => {
       showToast(err.response?.data?.error || "Failed to submit request", "error");
     } finally {
       setSubmittingInterest(false);
+    }
+  };
+
+  // Toggle booking status for owners
+  const handleToggleBookingStatus = async () => {
+    try {
+      const newStatus = !listing.is_filled;
+      await api.post(`/listings/${listing.id}/fill`, { is_filled: newStatus });
+      showToast(newStatus ? "Property marked as Booked!" : "Property marked as Available!", "success");
+      setListing(prev => ({ ...prev, is_filled: newStatus }));
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to update booking status", "error");
+    }
+  };
+
+  // Delete listing permanently for owners
+  const handleDeleteListing = async () => {
+    if (window.confirm("Are you sure you want to delete this listing?\n\nThis action cannot be undone.")) {
+      try {
+        await api.delete(`/listings/${listing.id}`);
+        showToast("Listing deleted successfully.", "success");
+        navigate(user?.role === 'owner' ? '/owner-dashboard' : '/');
+      } catch (err) {
+        console.error(err);
+        showToast("Failed to delete listing", "error");
+      }
     }
   };
 
@@ -122,8 +161,15 @@ const ListingDetailsPage = () => {
               </div>
             )}
             
+            {/* Booked badge */}
+            {listing.is_filled && (
+              <div className="absolute top-4 left-4 bg-rose-600 text-white font-black text-xs uppercase px-3 py-1.5 rounded-xl shadow-lg z-10 tracking-wider">
+                Booked
+              </div>
+            )}
+
             {/* Rent badge */}
-            <div className="absolute bottom-4 left-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800/80 font-black text-sm text-slate-900 dark:text-white shadow">
+            <div className="absolute bottom-4 left-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800/80 font-black text-sm text-slate-900 dark:text-white shadow animate-fade-in">
               ${listing.rent} <span className="text-[10px] text-slate-400 dark:text-slate-400 font-bold uppercase">/ month</span>
             </div>
           </div>
@@ -141,7 +187,7 @@ const ListingDetailsPage = () => {
             </div>
 
             {/* Price/Availability info tags */}
-            <div className="grid grid-cols-2 gap-4 border-t border-b border-slate-50 dark:border-slate-700/50 py-4 text-xs font-bold text-slate-600 dark:text-slate-400">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-t border-b border-slate-50 dark:border-slate-700/50 py-4 text-xs font-bold text-slate-600 dark:text-slate-400">
               <div className="flex items-center gap-2">
                 <DollarSign size={18} className="text-blue-500 dark:text-blue-400" />
                 <div>
@@ -154,6 +200,15 @@ const ListingDetailsPage = () => {
                 <div>
                   <span className="block text-[10px] text-slate-400 uppercase font-black">Available From</span>
                   <span>{new Date(listing.available_from).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${listing.is_filled ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                <div>
+                  <span className="block text-[10px] text-slate-400 uppercase font-black">Status</span>
+                  <span className={listing.is_filled ? 'text-rose-500' : 'text-emerald-500'}>
+                    {listing.is_filled ? 'Booked' : 'Available'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -193,134 +248,227 @@ const ListingDetailsPage = () => {
         <div className="space-y-6">
           
           {/* Tenant view: Compatibility analysis card */}
-          {user?.role === 'tenant' && compatScore && (
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm space-y-4">
-              <h2 className="font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-50 dark:border-slate-700 pb-2">Compatibility Report</h2>
-              
-              {/* Score ring */}
-              <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center font-black text-sm border-4 shadow-sm
-                  ${(compatScore.score === 0 || compatScore.status === 'No preferences selected')
-                    ? 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-950/20 dark:text-slate-400'
-                    : compatScore.score >= 80 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-400' 
-                      : compatScore.score >= 60 
-                        ? 'bg-amber-50 text-amber-700 border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-400' 
-                        : 'bg-rose-50 text-rose-700 border-rose-500/20 dark:bg-rose-950/20 dark:text-rose-400'}`}>
-                  {compatScore.score}%
+          {user?.role === 'tenant' && compatScore && (() => {
+            const score = compatScore.compatibility_score !== undefined ? compatScore.compatibility_score : compatScore.score;
+            return (
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm space-y-4">
+                <h2 className="font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-50 dark:border-slate-700 pb-2">Compatibility Report</h2>
+                
+                {/* Score ring */}
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center font-black text-sm border-4 shadow-sm
+                    ${(score === 0 || compatScore.status === 'No preferences selected')
+                      ? 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-950/20 dark:text-slate-400'
+                      : score >= 80 
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-400' 
+                        : score >= 60 
+                          ? 'bg-amber-50 text-amber-700 border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-400' 
+                          : 'bg-rose-50 text-rose-700 border-rose-500/20 dark:bg-rose-950/20 dark:text-rose-400'}`}>
+                    {score}%
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wide">Overall Match Rating</span>
+                    <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 leading-none">
+                      {(score === 0 || compatScore.status === 'No preferences selected')
+                        ? 'No Preferences Selected'
+                        : score >= 80 ? 'Highly Compatible' : score >= 60 ? 'Moderate Match' : 'Low Compatibility'}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wide">Overall Match Rating</span>
-                  <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 leading-none">
-                    {(compatScore.score === 0 || compatScore.status === 'No preferences selected')
-                      ? 'Add preferences to calculate AI Match'
-                      : compatScore.score >= 80 ? 'Highly Compatible' : compatScore.score >= 60 ? 'Moderate Match' : 'Low Compatibility'}
-                  </span>
+
+                {/* Matching factors breakdown */}
+                {compatScore.compatibility_breakdown && (score > 0 && compatScore.status !== 'No preferences selected') && (
+                  <div className="space-y-2.5 pt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 border-t border-slate-50 dark:border-slate-700">
+                    {compatScore.status === 'Calculated dynamically' ? (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span>Location Match (30%):</span>
+                          <span className={compatScore.compatibility_breakdown.location >= 21 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                            {compatScore.compatibility_breakdown.location} / 30 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Budget Match (25%):</span>
+                          <span className={compatScore.compatibility_breakdown.budget >= 20 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {compatScore.compatibility_breakdown.budget} / 25 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Room Type (15%):</span>
+                          <span className={compatScore.compatibility_breakdown.room_type >= 15 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {compatScore.compatibility_breakdown.room_type} / 15 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Gender Match (10%):</span>
+                          <span className={compatScore.compatibility_breakdown.gender >= 10 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {compatScore.compatibility_breakdown.gender} / 10 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Amenities Match (10%):</span>
+                          <span className={compatScore.compatibility_breakdown.amenities >= 5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {compatScore.compatibility_breakdown.amenities} / 10 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Lifestyle Match (10%):</span>
+                          <span className={compatScore.compatibility_breakdown.lifestyle >= 5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {compatScore.compatibility_breakdown.lifestyle} / 10 pts
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span>Budget Match (35%):</span>
+                          <span className={compatScore.compatibility_breakdown.budget >= 25 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {compatScore.compatibility_breakdown.budget} / 35 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Location Match (20%):</span>
+                          <span className={compatScore.compatibility_breakdown.location >= 12 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                            {compatScore.compatibility_breakdown.location} / 20 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Lifestyle Match (15%):</span>
+                          <span className={compatScore.compatibility_breakdown.lifestyle >= 10 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {compatScore.compatibility_breakdown.lifestyle} / 15 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Gender Preference (10%):</span>
+                          <span className={compatScore.compatibility_breakdown.gender === 10 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {compatScore.compatibility_breakdown.gender} / 10 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Occupancy Match (10%):</span>
+                          <span className={compatScore.compatibility_breakdown.occupancy >= 8 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                            {compatScore.compatibility_breakdown.occupancy} / 10 pts
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Amenities Match (10%):</span>
+                          <span className={compatScore.compatibility_breakdown.amenities >= 5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {compatScore.compatibility_breakdown.amenities} / 10 pts
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* AI scoring reasoning */}
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/80 space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-extrabold text-xs text-blue-600 dark:text-blue-400">
+                    <Sparkles size={14} className={(score === 0 || compatScore.status === 'No preferences selected') ? 'text-slate-400' : 'animate-pulse'} />
+                    <span>AI Matching Analysis</span>
+                  </div>
+                  {compatScore.reason && compatScore.reason.length > 0 ? (
+                    <ul className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed list-none space-y-1">
+                      {compatScore.reason.map((r, idx) => {
+                        const isPass = r.startsWith('✓');
+                        return (
+                          <li key={idx} className="flex items-start gap-1">
+                            <span className={isPass ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold'}>
+                              {isPass ? '✓' : '✗'}
+                            </span>
+                            <span>{r.replace(/^[✓✗]/, '').trim()}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-line">
+                      {(score === 0 || compatScore.status === 'No preferences selected')
+                        ? "No preferences selected. Apply dashboard filters or configure your roommate preferences in your profile to analyze matches."
+                        : (compatScore.explanation || compatScore.reasoning || "Profile match calculated.")}
+                    </p>
+                  )}
                 </div>
+
               </div>
-
-              {/* Matching factors breakdown */}
-              {compatScore.compatibility_breakdown && (compatScore.score > 0 && compatScore.status !== 'No preferences selected') && (
-                <div className="space-y-2.5 pt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 border-t border-slate-50 dark:border-slate-700">
-                  <div className="flex justify-between items-center">
-                    <span>Budget Match (35%):</span>
-                    <span className={compatScore.compatibility_breakdown.budget >= 25 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-                      {compatScore.compatibility_breakdown.budget} / 35 pts
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Location Match (20%):</span>
-                    <span className={compatScore.compatibility_breakdown.location >= 12 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                      {compatScore.compatibility_breakdown.location} / 20 pts
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Lifestyle Match (15%):</span>
-                    <span className={compatScore.compatibility_breakdown.lifestyle >= 10 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-                      {compatScore.compatibility_breakdown.lifestyle} / 15 pts
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Gender Preference (10%):</span>
-                    <span className={compatScore.compatibility_breakdown.gender === 10 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-                      {compatScore.compatibility_breakdown.gender} / 10 pts
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Occupancy Match (10%):</span>
-                    <span className={compatScore.compatibility_breakdown.occupancy >= 8 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                      {compatScore.compatibility_breakdown.occupancy} / 10 pts
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Amenities Match (10%):</span>
-                    <span className={compatScore.compatibility_breakdown.amenities >= 5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-                      {compatScore.compatibility_breakdown.amenities} / 10 pts
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* AI scoring reasoning */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/80 space-y-1.5">
-                <div className="flex items-center gap-1.5 font-extrabold text-xs text-blue-600 dark:text-blue-400">
-                  <Sparkles size={14} className={(compatScore.score === 0 || compatScore.status === 'No preferences selected') ? 'text-slate-400' : 'animate-pulse'} />
-                  <span>AI Matching Analysis</span>
-                </div>
-                <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-line">
-                  {(compatScore.score === 0 || compatScore.status === 'No preferences selected')
-                    ? "No preferences selected. Apply dashboard filters or configure your roommate preferences in your profile to analyze matches."
-                    : (compatScore.explanation || compatScore.reasoning)}
-                </p>
-              </div>
-
-            </div>
-          )}
+            );
+          })()}
 
           {/* Action box: Express Interest / Chat access */}
           <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm space-y-4">
             
             <h2 className="font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-50 dark:border-slate-700 pb-2">Express Interest</h2>
             
-            {/* Show request button based on user.role */}
-            {user?.role === 'tenant' ? (
+            {/* Show request button based on owner validation or user.role */}
+            {user && listing && (listing.owner_user_id === user.id) ? (
+              <div className="space-y-3 animate-fade-in">
+                <p className="text-[11px] font-bold text-slate-400 text-center leading-relaxed">
+                  You listed this property. You can manage booking status or delete the listing.
+                </p>
+                
+                <button
+                  onClick={handleToggleBookingStatus}
+                  className={`w-full py-3 rounded-xl font-black text-xs text-white transition-all flex items-center justify-center gap-1.5 shadow
+                    ${listing.is_filled 
+                      ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/10' 
+                      : 'bg-amber-600 hover:bg-amber-500 shadow-amber-500/10'}`}
+                >
+                  {listing.is_filled ? 'Mark as Available' : 'Mark as Booked'}
+                </button>
+
+                <button
+                  onClick={handleDeleteListing}
+                  className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 font-black text-xs text-white transition-all flex items-center justify-center gap-1.5 shadow shadow-rose-500/10"
+                >
+                  Delete Listing
+                </button>
+              </div>
+            ) : user?.role === 'tenant' ? (
               <div className="space-y-3">
-                {interestStatus === 'none' && (
-                  <button
-                    onClick={handleExpressInterest}
-                    disabled={submittingInterest}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-pink-500 hover:from-blue-500 hover:to-pink-400 font-black text-xs text-white transition-all flex items-center justify-center gap-1.5 shadow shadow-pink-500/10"
-                  >
-                    {submittingInterest ? <Loader2 size={16} className="animate-spin" /> : <Heart size={16} />}
-                    Submit Interest Request
-                  </button>
-                )}
-
-                {interestStatus === 'pending' && (
-                  <div className="p-3 bg-blue-50/50 dark:bg-slate-900/50 border border-blue-100 rounded-xl text-center text-xs font-bold text-blue-700 dark:text-blue-400">
-                    Interest Pending Owner Approval
+                {listing.is_filled ? (
+                  <div className="p-3.5 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 rounded-xl text-center text-xs font-bold text-rose-700 dark:text-rose-400">
+                    This property has already been booked.
                   </div>
-                )}
+                ) : (
+                  <>
+                    {interestStatus === 'none' && (
+                      <button
+                        onClick={handleExpressInterest}
+                        disabled={submittingInterest}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-pink-500 hover:from-blue-500 hover:to-pink-400 font-black text-xs text-white transition-all flex items-center justify-center gap-1.5 shadow shadow-pink-500/10"
+                      >
+                        {submittingInterest ? <Loader2 size={16} className="animate-spin" /> : <Heart size={16} />}
+                        Submit Interest Request
+                      </button>
+                    )}
 
-                {interestStatus === 'accepted' && (
-                  <div className="space-y-3">
-                    <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 rounded-xl text-center text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1.5">
-                      <ShieldCheck size={16} />
-                      Request Accepted!
-                    </div>
-                    <Link
-                      to="/chat"
-                      className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-black text-xs text-white transition-all flex items-center justify-center gap-1.5 shadow shadow-blue-500/10"
-                    >
-                      Go to Live Chat
-                    </Link>
-                  </div>
-                )}
+                    {interestStatus === 'pending' && (
+                      <div className="p-3 bg-blue-50/50 dark:bg-slate-900/50 border border-blue-100 rounded-xl text-center text-xs font-bold text-blue-700 dark:text-blue-400">
+                        Interest Pending Owner Approval
+                      </div>
+                    )}
 
-                {(interestStatus === 'rejected' || interestStatus === 'declined') && (
-                  <div className="p-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 rounded-xl text-center text-xs font-bold text-rose-700 dark:text-rose-400">
-                    Request Declined by Owner
-                  </div>
+                    {interestStatus === 'accepted' && (
+                      <div className="space-y-3">
+                        <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 rounded-xl text-center text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1.5">
+                          <ShieldCheck size={16} />
+                          Request Accepted!
+                        </div>
+                        <Link
+                          to="/chat"
+                          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-black text-xs text-white transition-all flex items-center justify-center gap-1.5 shadow shadow-blue-500/10"
+                        >
+                          Go to Live Chat
+                        </Link>
+                      </div>
+                    )}
+
+                    {(interestStatus === 'rejected' || interestStatus === 'declined') && (
+                      <div className="p-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 rounded-xl text-center text-xs font-bold text-rose-700 dark:text-rose-400">
+                        Request Declined by Owner
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ) : user?.role === 'owner' ? (
@@ -329,13 +477,21 @@ const ListingDetailsPage = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-[11px] font-bold text-slate-400 text-center">You must be logged in as a tenant to express interest.</p>
-                <Link
-                  to="/login"
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-pink-500 hover:from-blue-500 hover:to-pink-400 font-black text-xs text-white transition-all flex items-center justify-center gap-1.5 shadow shadow-pink-500/10"
-                >
-                  Sign In
-                </Link>
+                {listing.is_filled ? (
+                  <div className="p-3.5 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 rounded-xl text-center text-xs font-bold text-rose-700 dark:text-rose-400">
+                    This property has already been booked.
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-[11px] font-bold text-slate-400 text-center">You must be logged in as a tenant to express interest.</p>
+                    <Link
+                      to="/login"
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-pink-500 hover:from-blue-500 hover:to-pink-400 font-black text-xs text-white transition-all flex items-center justify-center gap-1.5 shadow shadow-pink-500/10"
+                    >
+                      Sign In
+                    </Link>
+                  </>
+                )}
               </div>
             )}
 

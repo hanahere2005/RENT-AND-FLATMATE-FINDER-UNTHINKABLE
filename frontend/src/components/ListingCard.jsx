@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, DollarSign, Calendar, Sparkles } from 'lucide-react';
 
-const ListingCard = ({ listing }) => {
-  const { id, title, rent, location, room_type, furnishing_status, available_from, images, compatibility } = listing;
+const ListingCard = ({ listing, filterQuery }) => {
+  const { id, title, rent, location, room_type, furnishing_status, available_from, images, compatibility, is_filled } = listing;
+
+  const [showReason, setShowReason] = useState(false);
 
   const score = listing.compatibility_score !== undefined && listing.compatibility_score !== null 
     ? listing.compatibility_score 
-    : compatibility?.score;
+    : (compatibility?.compatibility_score !== undefined ? compatibility.compatibility_score : compatibility?.score);
 
   // Determine styling based on match score
   let scoreColorClass = 'bg-slate-100 dark:bg-slate-800 text-slate-500';
@@ -54,6 +56,13 @@ const ListingCard = ({ listing }) => {
           </span>
         </div>
 
+        {/* Booked Badge */}
+        {is_filled && (
+          <div className="absolute top-3 right-3 bg-rose-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-md z-10">
+            Booked
+          </div>
+        )}
+
         {/* Compatibility badge */}
         {compatibility !== undefined && compatibility !== null && (
           <div className={`absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border backdrop-blur-md font-bold text-xs shadow-lg
@@ -67,7 +76,7 @@ const ListingCard = ({ listing }) => {
             <Sparkles size={12} className={(score === 0 || compatibility.status === 'No preferences selected') ? 'text-slate-400' : 'animate-pulse'} />
             <span>
               {(score === 0 || compatibility.status === 'No preferences selected')
-                ? 'Add preferences to calculate AI Match'
+                ? 'No Preferences Selected'
                 : `${score}% Match`}
             </span>
           </div>
@@ -90,6 +99,36 @@ const ListingCard = ({ listing }) => {
             <MapPin size={14} className="text-slate-400" />
             <span>{location}</span>
           </div>
+
+          {/* AI Match Explanation Accordion */}
+          {compatibility && score > 0 && compatibility.reason && (
+            <div className="text-xs pt-1">
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowReason(!showReason);
+                }}
+                className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:underline"
+              >
+                <span>{showReason ? 'Hide Analysis' : 'Why this Match?'}</span>
+              </button>
+              {showReason && (
+                <ul className="mt-2 space-y-1 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 text-[10px] text-slate-600 dark:text-slate-400 font-semibold animate-fade-in list-none">
+                  {compatibility.reason.map((r, idx) => {
+                    const isPass = r.startsWith('✓');
+                    return (
+                      <li key={idx} className="flex items-start gap-1">
+                        <span className={isPass ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold'}>
+                          {isPass ? '✓' : '✗'}
+                        </span>
+                        <span>{r.replace(/^[✓✗]/, '').trim()}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
         <hr className="border-slate-100 dark:border-slate-700/50" />
@@ -101,7 +140,7 @@ const ListingCard = ({ listing }) => {
             <span className="text-xs font-semibold text-slate-400 ml-1">/mo</span>
           </div>
           <Link
-            to={`/listings/${id}`}
+            to={`/listings/${id}${filterQuery ? '?' + filterQuery : ''}`}
             className="px-4 py-2 text-xs font-extrabold text-white bg-gradient-to-r from-blue-600 to-pink-500 hover:from-blue-500 hover:to-pink-400 rounded-xl transition-all"
           >
             View Room

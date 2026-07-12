@@ -193,20 +193,22 @@ def send_interest_request(listing_id):
         compat = CompatibilityScore.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
         score = 0
         profile = TenantProfile.query.filter_by(user_id=user_id).first()
-        if not compat:
-            if profile:
+        if profile:
+            if not compat or compat.score == 0:
                 score, explanation, is_ai = calculate_compatibility(listing, profile)
-                compat = CompatibilityScore(
-                    tenant_id=user_id,
-                    listing_id=listing_id,
-                    score=score,
-                    explanation=explanation,
-                    is_ai=is_ai
-                )
-                db.session.add(compat)
+                if not compat:
+                    compat = CompatibilityScore(
+                        tenant_id=user_id,
+                        listing_id=listing_id,
+                        score=score,
+                        explanation=explanation,
+                        is_ai=is_ai
+                    )
+                    db.session.add(compat)
+                else:
+                    compat.score = score
+                    compat.explanation = explanation
                 db.session.commit()
-                score = compat.score
-        else:
             score = compat.score
             
         # Create In-App Notification for Owner
@@ -283,20 +285,72 @@ def get_compatibility(listing_id):
         }), 404
         
     try:
-        # Check if compatibility score already pre-computed
-        compat = CompatibilityScore.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
-        if not compat:
-            score, explanation, is_ai = calculate_compatibility(listing, profile)
-            compat = CompatibilityScore(
-                tenant_id=user_id,
-                listing_id=listing_id,
-                score=score,
-                explanation=explanation,
-                is_ai=is_ai
-            )
-            db.session.add(compat)
-            db.session.commit()
-            
+        # Check if we should calculate dynamically because search filters are passed in query params
+        location = request.args.get('location')
+        budget_max = request.args.get('max_budget') or request.args.get('budget_max')
+        budget_min = request.args.get('min_budget') or request.args.get('budget_min')
+        room_type = request.args.get('room_type')
+        furnishing = request.args.get('furnishing')
+        gender = request.args.get('gender')
+        lifestyle = request.args.get('lifestyle')
+        amenities = request.args.get('amenities')
+        search = request.args.get('search')
+        move_in_date = request.args.get('move_in_date')
+
+        prefs = {}
+        for key, val in [
+            ('location', location),
+            ('max_budget', budget_max),
+            ('min_budget', budget_min),
+            ('room_type', room_type),
+            ('furnishing', furnishing),
+            ('gender', gender),
+            ('lifestyle', lifestyle),
+            ('amenities', amenities),
+            ('search', search),
+            ('move_in_date', move_in_date)
+        ]:
+            if val:
+                prefs[key] = val
+
+        filters_supplied = len(prefs) > 0
+
+        compat_data = None
+        if filters_supplied:
+            # Calculate dynamically using the search preferences
+            from backend.services.ai_service import calculate_compatibility_dynamic
+            score, breakdown, reasons = calculate_compatibility_dynamic(listing, prefs)
+            compat_data = {
+                'id': 0,
+                'tenant_id': user_id,
+                'listing_id': listing_id,
+                'score': score,
+                'explanation': "\n".join(reasons),
+                'reason': reasons,
+                'compatibility_breakdown': breakdown,
+                'is_ai': True,
+                'status': "Calculated dynamically"
+            }
+        else:
+            # Check if compatibility score already pre-computed in database
+            compat = CompatibilityScore.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
+            if not compat or compat.score == 0:
+                score, explanation, is_ai = calculate_compatibility(listing, profile)
+                if not compat:
+                    compat = CompatibilityScore(
+                        tenant_id=user_id,
+                        listing_id=listing_id,
+                        score=score,
+                        explanation=explanation,
+                        is_ai=is_ai
+                    )
+                    db.session.add(compat)
+                else:
+                    compat.score = score
+                    compat.explanation = explanation
+                db.session.commit()
+            compat_data = compat.to_dict()
+
         # Get interest request status if any
         interest_req = InterestRequest.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
         interest_status = interest_req.status if interest_req else 'none'
@@ -305,7 +359,7 @@ def get_compatibility(listing_id):
             "success": True,
             "message": "Compatibility check retrieved successfully",
             "data": {
-                "compatibility": compat.to_dict(),
+                "compatibility": compat_data,
                 "interest_status": interest_status
             }
         }), 200

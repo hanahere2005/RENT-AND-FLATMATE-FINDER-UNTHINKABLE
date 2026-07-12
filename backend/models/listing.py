@@ -31,6 +31,7 @@ class Listing(db.Model):
         return {
             'id': self.id,
             'owner_id': self.owner_id,
+            'owner_user_id': self.owner_profile.user_id if self.owner_profile else None,
             'owner_email': self.owner_profile.user.email if self.owner_profile and self.owner_profile.user else None,
             'owner_phone': self.owner_profile.contact_phone if self.owner_profile else None,
             'title': self.title,

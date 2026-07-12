@@ -20,8 +20,18 @@ const TenantDashboard = () => {
   const [furnishing, setFurnishing] = useState('');
   const [gender, setGender] = useState('');
   const [lifestyle, setLifestyle] = useState('');
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [availability, setAvailability] = useState('available');
   
   const [showFilters, setShowFilters] = useState(false);
+
+  const handleAmenityToggle = (amenityName) => {
+    setSelectedAmenities(prev => 
+      prev.includes(amenityName)
+        ? prev.filter(a => a !== amenityName)
+        : [...prev, amenityName]
+    );
+  };
 
   const fetchListings = async () => {
     setLoading(true);
@@ -36,6 +46,11 @@ const TenantDashboard = () => {
       if (furnishing) params.furnishing = furnishing;
       if (gender) params.gender = gender;
       if (lifestyle) params.lifestyle = lifestyle;
+      if (selectedAmenities.length > 0) params.amenities = selectedAmenities.join(',');
+      if (availability) params.availability = availability;
+
+      // Save these filters to localStorage so they are shared globally for details compatibility calculation
+      localStorage.setItem('tenant_filters', JSON.stringify(params));
 
       const res = await api.get('/listings', { params });
       setListings(res.data.listings || []);
@@ -48,9 +63,24 @@ const TenantDashboard = () => {
 
   useEffect(() => {
     fetchListings();
-  }, [searchQuery, minBudget, maxBudget, moveInDate, locationQuery, roomType, furnishing, gender, lifestyle]);
+  }, [searchQuery, minBudget, maxBudget, moveInDate, locationQuery, roomType, furnishing, gender, lifestyle, selectedAmenities, availability]);
 
   const filteredListings = listings;
+
+  const getFilterQueryString = () => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search', searchQuery);
+    if (locationQuery) params.append('location', locationQuery);
+    if (minBudget) params.append('min_budget', minBudget);
+    if (maxBudget) params.append('max_budget', maxBudget);
+    if (moveInDate) params.append('move_in_date', moveInDate);
+    if (roomType) params.append('room_type', roomType);
+    if (furnishing) params.append('furnishing', furnishing);
+    if (gender) params.append('gender', gender);
+    if (lifestyle) params.append('lifestyle', lifestyle);
+    if (selectedAmenities.length > 0) params.append('amenities', selectedAmenities.join(','));
+    return params.toString();
+  };
 
   return (
     <div className="space-y-8 py-2 animate-fade-in">
@@ -226,6 +256,42 @@ const TenantDashboard = () => {
               />
             </div>
 
+            {/* Availability Filter */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase">Availability</label>
+              <select
+                value={availability}
+                onChange={(e) => setAvailability(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              >
+                <option value="available">Available</option>
+                <option value="booked">Booked</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+
+            {/* Amenities Preferences */}
+            <div className="col-span-1 sm:col-span-2 md:col-span-4 space-y-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">Amenities Preferences</label>
+              <div className="flex flex-wrap gap-2">
+                {['wifi', 'parking', 'ac', 'gym', 'kitchen', 'washing machine', 'attached bathroom', 'furnished'].map((amenity) => {
+                  const isChecked = selectedAmenities.includes(amenity);
+                  return (
+                    <button
+                      key={amenity}
+                      onClick={() => handleAmenityToggle(amenity)}
+                      className={`px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase transition-all
+                        ${isChecked 
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20' 
+                          : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 hover:border-slate-300'}`}
+                    >
+                      {amenity}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -246,7 +312,7 @@ const TenantDashboard = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
+              <ListingCard key={listing.id} listing={listing} filterQuery={getFilterQueryString()} />
             ))}
           </div>
         )}

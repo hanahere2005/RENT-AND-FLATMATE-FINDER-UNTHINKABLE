@@ -108,6 +108,7 @@ def get_listings():
     furnishing = request.args.get('furnishing')
     gender = request.args.get('gender')
     lifestyle = request.args.get('lifestyle')
+    amenities = request.args.get('amenities')
     search = request.args.get('search')
     move_in_date = request.args.get('move_in_date')
     sort_by = request.args.get('sort_by', 'created_at')  # 'created_at', 'rent', 'compatibility'
@@ -140,6 +141,7 @@ def get_listings():
         ('furnishing', furnishing),
         ('gender', gender),
         ('lifestyle', lifestyle),
+        ('amenities', amenities),
         ('search', search),
         ('move_in_date', move_in_date)
     ]:
@@ -158,11 +160,11 @@ def get_listings():
             if filters_supplied:
                 # Dynamic matching based on active filters
                 from backend.services.ai_service import calculate_compatibility_dynamic
-                score, explanation, breakdown = calculate_compatibility_dynamic(listing, prefs)
+                score, breakdown, reasons = calculate_compatibility_dynamic(listing, prefs)
                 ldict['compatibility'] = {
-                    "score": score,
-                    "explanation": explanation,
+                    "compatibility_score": score,
                     "compatibility_breakdown": breakdown,
+                    "reason": reasons,
                     "status": "Calculated dynamically"
                 }
                 ldict['compatibility_score'] = score
@@ -170,7 +172,16 @@ def get_listings():
             else:
                 # No filters supplied: compatibility is 0
                 ldict['compatibility'] = {
-                    "score": 0,
+                    "compatibility_score": 0,
+                    "compatibility_breakdown": {
+                        "location": 0,
+                        "budget": 0,
+                        "room_type": 0,
+                        "gender": 0,
+                        "amenities": 0,
+                        "lifestyle": 0
+                    },
+                    "reason": [],
                     "status": "No preferences selected"
                 }
                 ldict['compatibility_score'] = 0
@@ -219,6 +230,7 @@ def get_listing_details(listing_id):
     furnishing = request.args.get('furnishing')
     gender = request.args.get('gender')
     lifestyle = request.args.get('lifestyle')
+    amenities = request.args.get('amenities')
     search = request.args.get('search')
     move_in_date = request.args.get('move_in_date')
 
@@ -231,6 +243,7 @@ def get_listing_details(listing_id):
         ('furnishing', furnishing),
         ('gender', gender),
         ('lifestyle', lifestyle),
+        ('amenities', amenities),
         ('search', search),
         ('move_in_date', move_in_date)
     ]:
@@ -255,54 +268,33 @@ def get_listing_details(listing_id):
             if filters_supplied:
                 # Dynamic matching based on active filters
                 from backend.services.ai_service import calculate_compatibility_dynamic
-                score, explanation, breakdown = calculate_compatibility_dynamic(listing, prefs)
+                score, breakdown, reasons = calculate_compatibility_dynamic(listing, prefs)
                 ldict['compatibility'] = {
-                    "score": score,
-                    "explanation": explanation,
+                    "compatibility_score": score,
                     "compatibility_breakdown": breakdown,
+                    "reason": reasons,
                     "status": "Calculated dynamically"
                 }
                 ldict['compatibility_score'] = score
                 ldict['compatibility_breakdown'] = breakdown
             else:
-                # Fallback to tenant profile if it is configured
-                is_configured = False
-                if tenant_profile:
-                    if tenant_profile.preferred_location and tenant_profile.preferred_location != 'Not specified':
-                        is_configured = True
-                    if tenant_profile.budget_max and tenant_profile.budget_max != 1000.0:
-                        is_configured = True
-                    if tenant_profile.lifestyle_habits:
-                        is_configured = True
-                        
-                if is_configured:
-                    compat = CompatibilityScore.query.filter_by(tenant_id=tenant_user_id, listing_id=listing.id).first()
-                    if not compat:
-                        # Compute on the fly
-                        score, explanation, is_ai = calculate_compatibility(listing, tenant_profile)
-                        compat = CompatibilityScore(
-                            tenant_id=tenant_user_id,
-                            listing_id=listing.id,
-                            score=score,
-                            explanation=explanation,
-                            is_ai=is_ai
-                        )
-                        db.session.add(compat)
-                        db.session.commit()
-                    if compat:
-                        compat_dict = compat.to_dict()
-                        ldict['compatibility'] = compat_dict
-                        ldict['compatibility_score'] = compat_dict['score']
-                        ldict['compatibility_breakdown'] = compat_dict['compatibility_breakdown']
-                else:
-                    ldict['compatibility'] = {
-                        "score": 0,
-                        "status": "No preferences selected"
-                    }
-                    ldict['compatibility_score'] = 0
-                    ldict['compatibility_breakdown'] = None
-    except Exception:
-        pass
+                ldict['compatibility'] = {
+                    "compatibility_score": 0,
+                    "compatibility_breakdown": {
+                        "location": 0,
+                        "budget": 0,
+                        "room_type": 0,
+                        "gender": 0,
+                        "amenities": 0,
+                        "lifestyle": 0
+                    },
+                    "reason": [],
+                    "status": "No preferences selected"
+                }
+                ldict['compatibility_score'] = 0
+                ldict['compatibility_breakdown'] = None
+    except Exception as e:
+        print(f"Error calculating details compatibility: {e}")
         
     return jsonify(ldict), 200
 

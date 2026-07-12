@@ -144,14 +144,29 @@ const OwnerDashboard = () => {
     }
   };
 
-  // Deactivate filled property listings
-  const handleToggleListingStatus = async (listingId, currentStatus) => {
+  // Toggle property booking status
+  const handleToggleBookingStatus = async (listingId, currentIsFilled) => {
     try {
-      await api.put(`/listings/${listingId}`, { is_active: !currentStatus });
-      showToast(`Property status updated successfully!`, "success");
+      await api.post(`/listings/${listingId}/fill`, { is_filled: !currentIsFilled });
+      showToast(!currentIsFilled ? "Property marked as Booked!" : "Property marked as Available!", "success");
       fetchListings();
     } catch (err) {
       console.error(err);
+      showToast("Failed to update booking status", "error");
+    }
+  };
+
+  // Delete listing permanently
+  const handleDeleteListing = async (listingId) => {
+    if (window.confirm("Are you sure you want to permanently delete this listing? This action cannot be undone.")) {
+      try {
+        await api.delete(`/owner/listings/${listingId}`);
+        showToast("Listing deleted successfully!", "success");
+        fetchListings();
+      } catch (err) {
+        console.error(err);
+        showToast(err.response?.data?.error || "Failed to delete listing", "error");
+      }
     }
   };
 
@@ -238,16 +253,22 @@ const OwnerDashboard = () => {
                 <div key={listing.id} className="relative group">
                   <ListingCard listing={listing} />
                   
-                  {/* Status Toggle overlay banner */}
-                  <div className="absolute top-3 right-3 z-10">
+                  {/* Status Toggle & Delete overlay banner */}
+                  <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
                     <button
-                      onClick={() => handleToggleListingStatus(listing.id, listing.is_active)}
+                      onClick={() => handleToggleBookingStatus(listing.id, listing.is_filled)}
                       className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md
-                        ${listing.is_active 
-                          ? 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-100' 
-                          : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100'}`}
+                        ${listing.is_filled 
+                          ? 'bg-rose-600 hover:bg-rose-500 text-white' 
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-100 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800'}`}
                     >
-                      {listing.is_active ? 'Active (Click to Close)' : 'Closed (Click to Open)'}
+                      {listing.is_filled ? 'Booked' : 'Available'}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteListing(listing.id)}
+                      className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-md"
+                    >
+                      Delete
                     </button>
                   </div>
                 </div>

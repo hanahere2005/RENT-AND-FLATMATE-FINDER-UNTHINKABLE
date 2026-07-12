@@ -44,6 +44,27 @@ def get_owner_requests():
         r_dict = req.to_dict()
         # Find compatibility score
         compat = CompatibilityScore.query.filter_by(tenant_id=req.tenant_id, listing_id=req.listing_id).first()
+        
+        from backend.models.profiles import TenantProfile
+        from backend.services.ai_service import calculate_compatibility
+        tenant_profile = TenantProfile.query.filter_by(user_id=req.tenant_id).first()
+        if tenant_profile:
+            if not compat or compat.score == 0:
+                score, explanation, is_ai = calculate_compatibility(req.listing, tenant_profile)
+                if not compat:
+                    compat = CompatibilityScore(
+                        tenant_id=req.tenant_id,
+                        listing_id=req.listing_id,
+                        score=score,
+                        explanation=explanation,
+                        is_ai=is_ai
+                    )
+                    db.session.add(compat)
+                else:
+                    compat.score = score
+                    compat.explanation = explanation
+                db.session.commit()
+                
         r_dict['compatibility'] = compat.to_dict() if compat else None
         results.append(r_dict)
         
@@ -89,6 +110,31 @@ def accept_request(request_id):
         
     try:
         req.status = 'accepted'
+        
+        # Mark listing as booked (filled)
+        req.listing.is_filled = True
+        
+        # Decline all other pending interest requests for this listing
+        other_requests = InterestRequest.query.filter(
+            InterestRequest.listing_id == req.listing_id,
+            InterestRequest.id != req.id,
+            InterestRequest.status == 'pending'
+        ).all()
+        
+        from backend.services.email_service import notify_tenant_listing_booked
+        for o_req in other_requests:
+            o_req.status = 'rejected'
+            # Send notification to other tenants
+            notif_other = Notification(
+                user_id=o_req.tenant_id,
+                message=f"The listing '{req.listing.title}' you were interested in has been booked by another tenant.",
+                type="booking_update"
+            )
+            db.session.add(notif_other)
+            try:
+                notify_tenant_listing_booked(o_req.tenant.email, req.listing.title)
+            except Exception as ex:
+                logger.error(f"Failed to email other tenant on auto-rejection: {str(ex)}")
         
         # Enable real-time chat: check if a chat room already exists
         chat = Chat.query.filter_by(request_id=req.id).first()
@@ -238,3 +284,9 @@ def update_request_status(request_id):
             "error": f"Invalid request status '{status}'. Must be 'accepted' or 'rejected'.",
             "code": 400
         }), 400
+
+
+@jwt_required()
+def delete_listing(listing_id):
+    from backend.controllers.listing_controller import delete_listing as delete_listing_core
+    return delete_listing_core(listing_id)

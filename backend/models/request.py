@@ -29,6 +29,7 @@ class InterestRequest(db.Model):
             'listing_title': self.listing.title if self.listing else None,
             'listing_rent': self.listing.rent if self.listing else None,
             'listing_location': self.listing.location if self.listing else None,
+            'listing_is_filled': self.listing.is_filled if self.listing else False,
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

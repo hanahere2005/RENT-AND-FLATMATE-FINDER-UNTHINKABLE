@@ -232,3 +232,38 @@ def notify_tenant_request_rejected(tenant_email, listing_title):
     </html>
     """
     return send_email(subject, tenant_email, body_html, body_text)
+
+
+def notify_tenant_listing_booked(tenant_email, listing_title):
+    """
+    Sends an email notification to the tenant when the listing is marked as booked.
+    """
+    subject = f"Property Update: '{listing_title}' is no longer available"
+    body_text = f"""
+    Hello,
+    
+    Thank you for your interest in the listing "{listing_title}".
+    
+    We wanted to inform you that this property has now been booked and is no longer available.
+    
+    We encourage you to log back into Staylio and explore other great properties matching your compatibility score!
+    
+    Best regards,
+    Staylio Team
+    """
+    body_html = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <h2 style="color: #ef4444;">Update: Listing Booked</h2>
+          <p>Hello,</p>
+          <p>Thank you for your interest in the listing <strong>"{listing_title}"</strong>.</p>
+          <p>We wanted to inform you that this property has now been booked and is no longer available.</p>
+          <p>We encourage you to log back into Staylio and explore other great properties matching your compatibility score!</p>
+          <br/>
+          <p style="font-size: 12px; color: #666;">Best regards,<br/>Staylio Team</p>
+        </div>
+      </body>
+    </html>
+    """
+    return send_email(subject, tenant_email, body_html, body_text)
