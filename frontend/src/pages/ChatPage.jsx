@@ -202,14 +202,14 @@ const ChatPage = () => {
                         {otherUser?.email}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-450 dark:text-slate-400 truncate">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-400 truncate">
                       {chat.last_message ? chat.last_message.content : "Start chatting now..."}
                     </p>
                   </div>
 
                   {/* Unread badge count */}
                   {chat.unread_count > 0 && (
-                    <span className="flex-shrink-0 bg-blue-650 text-white rounded-full w-5 h-5 font-black text-[9px] flex items-center justify-center">
+                    <span className="flex-shrink-0 bg-blue-600 text-white rounded-full w-5 h-5 font-black text-[9px] flex items-center justify-center">
                       {chat.unread_count}
                     </span>
                   )}
@@ -283,7 +283,7 @@ const ChatPage = () => {
                         </span>
                         {isMine && (
                           <span>
-                            <CheckCheck size={12} className={msg.is_read ? 'text-blue-500' : 'text-slate-350'} />
+                            <CheckCheck size={12} className={msg.is_read ? 'text-blue-500' : 'text-slate-300'} />
                           </span>
                         )}
                       </div>

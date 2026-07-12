@@ -103,7 +103,7 @@ const ProfilePage = () => {
         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm h-fit space-y-4">
           <h2 className="font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-50 dark:border-slate-700 pb-2">Account Meta</h2>
           
-          <div className="space-y-3 text-xs font-semibold text-slate-650 dark:text-slate-400">
+          <div className="space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-400">
             <div className="flex items-center gap-2">
               <Mail size={16} className="text-slate-400" />
               <span className="truncate">{user.email}</span>
@@ -127,7 +127,7 @@ const ProfilePage = () => {
                 
                 {/* Preferred locations */}
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Preferred Cities / Neighborhoods</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Preferred Cities / Neighborhoods</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                       <MapPin size={16} />
@@ -144,7 +144,7 @@ const ProfilePage = () => {
 
                 {/* Min budget */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Min Monthly Budget ($)</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Min Monthly Budget ($)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                       <DollarSign size={16} />
@@ -160,7 +160,7 @@ const ProfilePage = () => {
 
                 {/* Max budget */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Max Monthly Budget ($)</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Max Monthly Budget ($)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                       <DollarSign size={16} />
@@ -176,7 +176,7 @@ const ProfilePage = () => {
 
                 {/* Move-in date */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Target Move-in Date</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Target Move-in Date</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                       <Calendar size={16} />
@@ -191,7 +191,7 @@ const ProfilePage = () => {
 
                 {/* Lifestyle Habits */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Lifestyle Habits</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Lifestyle Habits</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                       <User size={16} />
@@ -208,7 +208,7 @@ const ProfilePage = () => {
 
                 {/* Bio bio */}
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Introduce Yourself (Bio)</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Introduce Yourself (Bio)</label>
                   <textarea
                     rows={4}
                     placeholder="Tell potential room owners who you are, what you do, and what type of shared flat you want..."
@@ -223,7 +223,7 @@ const ProfilePage = () => {
                 
                 {/* Phone */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Contact Phone Number</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Contact Phone Number</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                       <Phone size={16} />
@@ -241,7 +241,7 @@ const ProfilePage = () => {
 
                 {/* Company name */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Company / Agency Name (Optional)</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Company / Agency Name (Optional)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                       <Building size={16} />

@@ -1,140 +1,310 @@
 import json
 import logging
-from openai import OpenAI
 from flask import current_app
-from backend.prompts.ai_prompts import COMPATIBILITY_PROMPT_TEMPLATE
 
 logger = logging.getLogger(__name__)
 
 def calculate_compatibility(listing, tenant_profile):
     """
-    Computes compatibility score and explanation between a listing and a tenant profile.
-    Tries OpenAI first, falls back to rule-based matching if OpenAI fails or key is missing.
-    Returns (score, explanation, is_ai)
+    Computes compatibility score, breakdown, and explanation between a listing and a tenant profile.
+    If the tenant profile has not configured any preferences, returns score 0 and no breakdown.
     """
-    api_key = current_app.config.get('OPENAI_API_KEY')
+    # Check if profile is unconfigured (still set to initial system defaults)
+    is_configured = False
+    if tenant_profile:
+        if tenant_profile.preferred_location and tenant_profile.preferred_location != 'Not specified':
+            is_configured = True
+        if tenant_profile.budget_max and tenant_profile.budget_max != 1000.0:
+            is_configured = True
+        if tenant_profile.lifestyle_habits:
+            is_configured = True
+            
+    if not is_configured:
+        explanation_json = json.dumps({
+            "text": "No preferences selected. Configure your profile roommate preferences to calculate matching scores.",
+            "breakdown": {
+                "budget": 0, "location": 0, "lifestyle": 0, "gender": 0, "occupancy": 0, "amenities": 0
+            }
+        })
+        return 0, explanation_json, False
+        
+    score, explanation_text, breakdown, is_ai = calculate_compatibility_rule_based(listing, tenant_profile)
     
-    if api_key:
+    explanation_json = json.dumps({
+        "text": explanation_text,
+        "breakdown": breakdown
+    })
+    
+    return score, explanation_json, is_ai
+
+
+def calculate_compatibility_dynamic(listing, prefs):
+    """
+    Computes compatibility score, breakdown, and explanation dynamically based on a user's applied search filters.
+    If no compatibility-relevant preferences are present, returns score 0.
+    """
+    # Weights:
+    # 1. Budget Match: 35%
+    # 2. Location Match: 20%
+    # 3. Lifestyle Match: 15%
+    # 4. Gender Match: 10%
+    # 5. Occupancy Match: 10%
+    # 6. Amenities Match: 10%
+    
+    # 1. Budget Match (Max 35 points)
+    budget_score = 35  # neutral/default if filter not set
+    rent = listing.rent
+    max_budget_filter = prefs.get('max_budget') or prefs.get('budget_max')
+    
+    if max_budget_filter:
         try:
-            client = OpenAI(api_key=api_key)
-            prompt = COMPATIBILITY_PROMPT_TEMPLATE.format(
-                listing_title=listing.title,
-                listing_room_type=listing.room_type,
-                listing_furnishing_status=listing.furnishing_status,
-                listing_rent=listing.rent,
-                listing_location=listing.location,
-                listing_address=listing.address,
-                listing_available_from=str(listing.available_from),
-                listing_amenities=", ".join(listing.amenities) if isinstance(listing.amenities, list) else str(listing.amenities),
-                tenant_preferred_location=tenant_profile.preferred_location,
-                tenant_budget_min=tenant_profile.budget_min,
-                tenant_budget_max=tenant_profile.budget_max,
-                tenant_move_in_date=str(tenant_profile.move_in_date),
-                tenant_occupation=tenant_profile.occupation,
-                tenant_bio=tenant_profile.bio or "N/A"
-            )
+            b_max = float(max_budget_filter)
+            if rent <= b_max:
+                budget_score = 35
+            else:
+                diff = rent - b_max
+                reduction = (diff / b_max) * 35
+                budget_score = max(0, int(35 - reduction))
+        except ValueError:
+            pass
             
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that returns only raw JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.2,
-                response_format={"type": "json_object"}
-            )
+    # 2. Location Match (Max 20 points)
+    location_score = 20  # neutral/default if filter not set
+    loc_filter = prefs.get('location')
+    if loc_filter:
+        loc_listing = listing.location.strip().lower() if listing.location else ""
+        pref_loc = loc_filter.strip().lower()
+        if loc_listing == pref_loc or pref_loc in loc_listing or loc_listing in pref_loc:
+            location_score = 20
+        else:
+            listing_words = set(loc_listing.replace(",", " ").split())
+            tenant_words = set(pref_loc.replace(",", " ").split())
+            overlap = listing_words.intersection(tenant_words)
+            if overlap:
+                location_score = 12
+            else:
+                location_score = 0
+                
+    # 3. Lifestyle Match (Max 15 points)
+    lifestyle_score = 15  # neutral/default if filter not set
+    lifestyle_filter = prefs.get('lifestyle')
+    if lifestyle_filter:
+        desc_lower = listing.description.lower() if listing.description else ""
+        title_lower = listing.title.lower() if listing.title else ""
+        combined_text = desc_lower + " " + title_lower
+        
+        pref_habits = [h.strip().lower() for h in lifestyle_filter.split(',') if h.strip()]
+        matched_habits = 0
+        for habit in pref_habits:
+            if 'non-smoker' in habit or 'no smoking' in habit or 'non smoker' in habit:
+                if 'smoking allowed' in combined_text or 'smoker friendly' in combined_text:
+                    continue
+            if 'vegetarian' in habit or 'veg' in habit:
+                if 'non-veg only' in combined_text:
+                    continue
+            matched_habits += 1
+        if pref_habits:
+            lifestyle_score = int(15 * (matched_habits / len(pref_habits)))
             
-            result_text = response.choices[0].message.content.strip()
-            result_json = json.loads(result_text)
+    # 4. Gender Match (Max 10 points)
+    gender_score = 10  # neutral/default if filter not set
+    gender_filter = prefs.get('gender')
+    if gender_filter and gender_filter.lower() != 'any':
+        desc_lower = listing.description.lower() if listing.description else ""
+        title_lower = listing.title.lower() if listing.title else ""
+        combined_text = desc_lower + " " + title_lower
+        
+        g_filter = gender_filter.lower()
+        female_only = any(kw in combined_text for kw in ['female only', 'girls only', 'female flatmate', 'female roommate', 'girl only', 'ladies only'])
+        male_only = any(kw in combined_text for kw in ['male only', 'boys only', 'male flatmate', 'male roommate', 'boy only', 'gents only'])
+        
+        if g_filter == 'male':
+            if female_only:
+                gender_score = 0
+        elif g_filter == 'female':
+            if male_only:
+                gender_score = 0
+                
+    # 5. Occupancy Match (Max 10 points)
+    occupancy_score = 10  # neutral/default if filter not set
+    room_type_filter = prefs.get('room_type')
+    if room_type_filter and room_type_filter.lower() != 'any':
+        room_type = listing.room_type.lower() if listing.room_type else ""
+        rt_filter = room_type_filter.lower()
+        if rt_filter in room_type or room_type in rt_filter:
+            occupancy_score = 10
+        else:
+            occupancy_score = 2
             
-            score = int(result_json.get('score', 0))
-            explanation = result_json.get('explanation', '')
+    # 6. Amenities Match (Max 10 points)
+    amenities_score = 10  # neutral/default if filter not set
+    furnishing_filter = prefs.get('furnishing')
+    if furnishing_filter and furnishing_filter.lower() != 'any':
+        furnishing_status = listing.furnishing_status.lower() if listing.furnishing_status else ""
+        f_filter = furnishing_filter.lower()
+        if f_filter in furnishing_status or furnishing_status in f_filter:
+            amenities_score = 10
+        else:
+            amenities_score = 4
             
-            # Bound check score
-            score = max(0, min(100, score))
-            
-            return score, explanation, True
-            
-        except Exception as e:
-            logger.error(f"AI compatibility scoring failed, falling back to rule-based. Error: {str(e)}")
-            
-    # Fallback to rule-based
-    return calculate_compatibility_rule_based(listing, tenant_profile)
+    total_score = budget_score + location_score + lifestyle_score + gender_score + occupancy_score + amenities_score
+    total_score = max(0, min(100, total_score))
+    
+    breakdown = {
+        "budget": budget_score,
+        "location": location_score,
+        "lifestyle": lifestyle_score,
+        "gender": gender_score,
+        "occupancy": occupancy_score,
+        "amenities": amenities_score
+    }
+    
+    explanations = [
+        f"Budget Match: {budget_score}/35 pts",
+        f"Location Match: {location_score}/20 pts",
+        f"Lifestyle Match: {lifestyle_score}/15 pts",
+        f"Gender Match: {gender_score}/10 pts",
+        f"Occupancy Match: {occupancy_score}/10 pts",
+        f"Amenities Match: {amenities_score}/10 pts"
+    ]
+    explanation_text = "Dynamic Compatibility Breakdown:\n\n- " + "\n- ".join(explanations)
+    
+    return total_score, explanation_text, breakdown
 
 
 def calculate_compatibility_rule_based(listing, tenant_profile):
-    """
-    Deterministically computes a compatibility score based on structured rules.
-    Max Score: 100 points
-    - Budget Match: 40 points
-    - Location Match: 40 points
-    - Move-in Date Match: 20 points
-    """
+    # Weights:
+    # 1. Budget Match: 35%
+    # 2. Location Match: 20%
+    # 3. Lifestyle Match: 15%
+    # 4. Gender Match: 10%
+    # 5. Occupancy Match: 10%
+    # 6. Amenities Match: 10%
+    
+    # 1. Budget Match (Max 35 points)
     budget_score = 0
-    location_score = 0
-    date_score = 0
-    
-    explanations = []
-    
-    # 1. Budget Match (Max 40 points)
     rent = listing.rent
-    b_min = tenant_profile.budget_min
-    b_max = tenant_profile.budget_max
+    b_max = tenant_profile.budget_max or 1000.0
     
-    if b_min <= rent <= b_max:
-        budget_score = 40
-        explanations.append(f"Rent of ${rent:.2f} falls perfectly within your budget range of ${b_min:.2f} - ${b_max:.2f} (+40 pts).")
-    elif rent < b_min:
-        # Rent is cheaper than preferred min budget, which is generally fine/positive
-        budget_score = 40
-        explanations.append(f"Rent of ${rent:.2f} is below your minimum budget of ${b_min:.2f}, representing a great saving (+40 pts).")
-    elif rent <= b_max * 1.15:
-        budget_score = 20
-        explanations.append(f"Rent of ${rent:.2f} is slightly above your budget cap of ${b_max:.2f} but within a 15% margin (+20 pts).")
+    if rent <= b_max:
+        budget_score = 35
     else:
-        budget_score = 0
-        explanations.append(f"Rent of ${rent:.2f} exceeds your budget cap of ${b_max:.2f} (0 pts).")
+        # Gradual reduction: if rent is double the budget cap, score is 0
+        diff = rent - b_max
+        reduction = (diff / b_max) * 35
+        budget_score = max(0, int(35 - reduction))
         
-    # 2. Location Match (Max 40 points)
-    loc_listing = listing.location.strip().lower()
-    loc_tenant = tenant_profile.preferred_location.strip().lower()
+    # 2. Location Match (Max 20 points)
+    location_score = 0
+    loc_listing = listing.location.strip().lower() if listing.location else ""
+    pref_loc = tenant_profile.preferred_location.strip().lower() if tenant_profile.preferred_location else ""
     
-    if loc_listing == loc_tenant or loc_tenant in loc_listing or loc_listing in loc_tenant:
-        location_score = 40
-        explanations.append(f"Property location ({listing.location}) matches your preferred location ({tenant_profile.preferred_location}) (+40 pts).")
+    if not pref_loc or pref_loc == "not specified":
+        location_score = 10  # neutral default
+    elif loc_listing == pref_loc or pref_loc in loc_listing or loc_listing in pref_loc:
+        location_score = 20
     else:
-        # Check partial word matches
+        # Partial word matching
         listing_words = set(loc_listing.replace(",", " ").split())
-        tenant_words = set(loc_tenant.replace(",", " ").split())
+        tenant_words = set(pref_loc.replace(",", " ").split())
         overlap = listing_words.intersection(tenant_words)
-        
         if overlap:
-            location_score = 20
-            explanations.append(f"Property location ({listing.location}) shares regional terms with your preferred location ({tenant_profile.preferred_location}) (+20 pts).")
+            location_score = 12
         else:
             location_score = 0
-            explanations.append(f"Property location ({listing.location}) does not match your preferred location ({tenant_profile.preferred_location}) (0 pts).")
             
-    # 3. Move-in Date Match (Max 20 points)
-    avail_date = listing.available_from
-    move_date = tenant_profile.move_in_date
+    # 3. Lifestyle Match (Max 15 points)
+    lifestyle_score = 0
+    habits = []
+    if tenant_profile.lifestyle_habits:
+        habits = [h.strip().lower() for h in tenant_profile.lifestyle_habits.split(',') if h.strip()]
+        
+    desc_lower = listing.description.lower() if listing.description else ""
+    title_lower = listing.title.lower() if listing.title else ""
+    combined_text = desc_lower + " " + title_lower
     
-    if avail_date <= move_date:
-        date_score = 20
-        explanations.append(f"Property is available from {avail_date.strftime('%Y-%m-%d')}, which is on or before your move-in date of {move_date.strftime('%Y-%m-%d')} (+20 pts).")
+    if not habits:
+        # Neutral default if no preferences are specified
+        lifestyle_score = 10
     else:
-        days_diff = (avail_date - move_date).days
-        if days_diff <= 30:
-            date_score = 10
-            explanations.append(f"Property is available from {avail_date.strftime('%Y-%m-%d')}, which is {days_diff} days after your preferred move-in date of {move_date.strftime('%Y-%m-%d')} (+10 pts).")
-        else:
-            date_score = 0
-            explanations.append(f"Property availability ({avail_date.strftime('%Y-%m-%d')}) is more than 30 days after your move-in date ({move_date.strftime('%Y-%m-%d')}) (0 pts).")
+        matched_habits = 0
+        for habit in habits:
+            # Check for conflict: e.g. tenant is non-smoker but listing allows smoking
+            if 'non-smoker' in habit or 'no smoking' in habit or 'non smoker' in habit:
+                if 'smoking allowed' in combined_text or 'smoker friendly' in combined_text:
+                    continue
+            if 'vegetarian' in habit or 'veg' in habit:
+                if 'non-veg only' in combined_text:
+                    continue
+            matched_habits += 1
             
-    total_score = budget_score + location_score + date_score
+        lifestyle_score = int(15 * (matched_habits / len(habits)))
+        
+    # 4. Gender Match (Max 10 points)
+    gender_score = 10
+    female_only = any(kw in combined_text for kw in ['female only', 'girls only', 'female flatmate', 'female roommate', 'girl only', 'ladies only'])
+    male_only = any(kw in combined_text for kw in ['male only', 'boys only', 'male flatmate', 'male roommate', 'boy only', 'gents only'])
     
-    # Generate final response summary
-    explanation_text = " (Rule-based Fallback Scorer)\n\n" + "\n- ".join(explanations)
-    explanation_text += f"\n\nRoom Type: {listing.room_type.replace('_', ' ').capitalize()} room. Furnishing status: {listing.furnishing_status.capitalize()}."
+    tenant_bio = tenant_profile.bio.lower() if tenant_profile.bio else ""
+    tenant_email = tenant_profile.user.email.lower() if (tenant_profile.user and tenant_profile.user.email) else ""
+    tenant_text = tenant_bio + " " + tenant_email
     
-    return total_score, explanation_text, False
+    is_female = any(kw in tenant_text for kw in ['female', 'girl', 'woman', 'lady', 'she', 'her'])
+    is_male = any(kw in tenant_text for kw in ['male', 'boy', 'man', 'guy', 'he', 'him'])
+    
+    if female_only and is_male and not is_female:
+        gender_score = 0
+    elif male_only and is_female and not is_male:
+        gender_score = 0
+        
+    # 5. Occupancy Match (Max 10 points)
+    occupancy_score = 8  # default neutral
+    room_type = listing.room_type.lower() if listing.room_type else ""
+    if 'single' in room_type:
+        if 'private' in tenant_bio or 'single' in tenant_bio:
+            occupancy_score = 10
+        elif 'shared' in tenant_bio or 'sharing' in tenant_bio:
+            occupancy_score = 5
+    elif 'shared' in room_type:
+        if 'shared' in tenant_bio or 'sharing' in tenant_bio or 'roommate' in tenant_bio:
+            occupancy_score = 10
+        elif 'private' in tenant_bio or 'single' in tenant_bio:
+            occupancy_score = 4
+            
+    # 6. Amenities Match (Max 10 points)
+    amenities_score = 0
+    key_amenities = ['wifi', 'parking', 'washing machine', 'ac', 'kitchen', 'furnished', 'attached bathroom', 'gym']
+    listing_amenities = [a.lower() for a in listing.amenities] if isinstance(listing.amenities, list) else []
+    
+    matched_count = 0
+    for amenity in key_amenities:
+        if any(amenity in a for a in listing_amenities):
+            matched_count += 1
+            
+    amenities_score = int(10 * (matched_count / len(key_amenities)))
+    if matched_count > 0 and amenities_score == 0:
+        amenities_score = 1
+        
+    total_score = budget_score + location_score + lifestyle_score + gender_score + occupancy_score + amenities_score
+    total_score = max(0, min(100, total_score))
+    
+    breakdown = {
+        "budget": budget_score,
+        "location": location_score,
+        "lifestyle": lifestyle_score,
+        "gender": gender_score,
+        "occupancy": occupancy_score,
+        "amenities": amenities_score
+    }
+    
+    explanations = [
+        f"Budget Match: {budget_score}/35 pts (Rent: ${rent:.0f}, Max Budget: ${b_max:.0f})",
+        f"Location Match: {location_score}/20 pts (Listing: {listing.location}, Preferred: {tenant_profile.preferred_location})",
+        f"Lifestyle Match: {lifestyle_score}/15 pts (Habits: {tenant_profile.lifestyle_habits or 'None specified'})",
+        f"Gender Match: {gender_score}/10 pts",
+        f"Occupancy Match: {occupancy_score}/10 pts (Listing Room Type: {listing.room_type.capitalize()})",
+        f"Amenities Match: {amenities_score}/10 pts (Matches {matched_count} key amenities)"
+    ]
+    explanation_text = "Detailed Compatibility Breakdown:\n\n- " + "\n- ".join(explanations)
+    
+    return total_score, explanation_text, breakdown, False

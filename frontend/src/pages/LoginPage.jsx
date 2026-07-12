@@ -61,7 +61,7 @@ const LoginPage = () => {
           
           {/* Email field */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Email Address</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Email Address</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                 <Mail size={16} />
@@ -82,7 +82,7 @@ const LoginPage = () => {
 
           {/* Password field */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Password</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Password</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                 <Lock size={16} />
@@ -123,7 +123,7 @@ const LoginPage = () => {
         {/* Footer Link */}
         <div className="text-center text-xs text-slate-500 dark:text-slate-400 font-medium">
           Don't have an account?{' '}
-          <Link to="/signup" className="font-extrabold text-pink-600 dark:text-pink-450 hover:underline">
+          <Link to="/signup" className="font-extrabold text-pink-600 dark:text-pink-400 hover:underline">
             Sign Up
           </Link>
         </div>

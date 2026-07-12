@@ -210,7 +210,7 @@ const OwnerDashboard = () => {
         >
           Incoming Interests ({requests.filter(r => r.status === 'pending').length})
           {requests.filter(r => r.status === 'pending').length > 0 && (
-            <span className="absolute top-1.5 right-0.5 w-2 h-2 rounded-full bg-pink-650"></span>
+            <span className="absolute top-1.5 right-0.5 w-2 h-2 rounded-full bg-pink-600"></span>
           )}
         </button>
       </section>
@@ -226,9 +226,9 @@ const OwnerDashboard = () => {
             </div>
           ) : listings.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/50 space-y-3 shadow-sm">
-              <Home size={40} className="mx-auto text-slate-300 dark:text-slate-655" />
-              <h3 className="font-extrabold text-base text-slate-905 dark:text-white">No Listings Yet</h3>
-              <p className="text-xs text-slate-450 dark:text-slate-400 max-w-xs mx-auto font-medium leading-relaxed">
+              <Home size={40} className="mx-auto text-slate-300 dark:text-slate-600" />
+              <h3 className="font-extrabold text-base text-slate-900 dark:text-white">No Listings Yet</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-400 max-w-xs mx-auto font-medium leading-relaxed">
                 Click "Post Room" above to list your properties and find roommate matches.
               </p>
             </div>
@@ -264,9 +264,9 @@ const OwnerDashboard = () => {
             </div>
           ) : requests.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/50 space-y-3 shadow-sm">
-              <CheckSquare size={40} className="mx-auto text-slate-300 dark:text-slate-655" />
-              <h3 className="font-extrabold text-base text-slate-905 dark:text-white">No Incoming Requests</h3>
-              <p className="text-xs text-slate-450 dark:text-slate-400 max-w-xs mx-auto font-medium leading-relaxed">
+              <CheckSquare size={40} className="mx-auto text-slate-300 dark:text-slate-600" />
+              <h3 className="font-extrabold text-base text-slate-900 dark:text-white">No Incoming Requests</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-400 max-w-xs mx-auto font-medium leading-relaxed">
                 Tenant requests and high compatibility alerts will pop up here once they express interest.
               </p>
             </div>
@@ -296,13 +296,13 @@ const OwnerDashboard = () => {
 
                       {/* Bio */}
                       {req.tenant_profile?.bio && (
-                        <p className="text-xs font-semibold text-slate-505 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-900/20 p-3 rounded-xl border border-slate-100/50 dark:border-slate-700/30 italic">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-900/20 p-3 rounded-xl border border-slate-100/50 dark:border-slate-700/30 italic">
                           "{req.tenant_profile.bio}"
                         </p>
                       )}
 
                       {/* Details row */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[11px] font-bold text-slate-450 dark:text-slate-400">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[11px] font-bold text-slate-400 dark:text-slate-400">
                         <div className="flex items-center gap-1.5">
                           <Calendar size={14} className="text-slate-400" />
                           <span>Move-in: {req.tenant_profile?.move_in_date || 'Flexible'}</span>
@@ -329,7 +329,7 @@ const OwnerDashboard = () => {
                           ${compat?.score >= 80 
                             ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400' 
                             : compat?.score >= 60 
-                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-450' 
+                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400' 
                               : 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400'}`}>
                           <Sparkles size={14} className="animate-pulse" />
                           <span>{compat?.score}% Match</span>
@@ -357,7 +357,7 @@ const OwnerDashboard = () => {
                           </>
                         ) : (
                           <span className={`text-xs font-black uppercase tracking-wider
-                            ${req.status === 'accepted' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-450'}`}>
+                            ${req.status === 'accepted' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {req.status}
                           </span>
                         )}
@@ -382,20 +382,20 @@ const OwnerDashboard = () => {
                 
                 {/* Title */}
                 <div className="sm:col-span-3 space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Listing Title *</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Listing Title *</label>
                   <input
                     type="text"
                     placeholder="e.g. Spacious Room in Cozy Shared Apartment"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-205 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
 
                 {/* Street address */}
                 <div className="sm:col-span-3 space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Street Address *</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Street Address *</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
                       <MapPin size={16} />
@@ -413,62 +413,62 @@ const OwnerDashboard = () => {
 
                 {/* City */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">City *</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">City *</label>
                   <input
                     type="text"
                     placeholder="e.g. San Francisco"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
 
                 {/* State */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-655 dark:text-slate-350 block">State *</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">State *</label>
                   <input
                     type="text"
                     placeholder="e.g. CA"
                     value={state}
                     onChange={(e) => setState(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
 
                 {/* Rent amount */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Monthly Rent ($) *</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Monthly Rent ($) *</label>
                   <input
                     type="number"
                     placeholder="e.g. 1200"
                     value={rentAmount}
                     onChange={(e) => setRentAmount(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
 
                 {/* Available from */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-355 block">Available From *</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Available From *</label>
                   <input
                     type="date"
                     value={availableFrom}
                     onChange={(e) => setAvailableFrom(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
 
                 {/* Room Type */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Room Type *</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Room Type *</label>
                   <select
                     value={roomType}
                     onChange={(e) => setRoomType(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   >
                     <option value="single">Single Room</option>
@@ -479,11 +479,11 @@ const OwnerDashboard = () => {
 
                 {/* Furnishing Status */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-655 dark:text-slate-350 block">Furnishing *</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Furnishing *</label>
                   <select
                     value={furnishingStatus}
                     onChange={(e) => setFurnishingStatus(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   >
                     <option value="unfurnished">Unfurnished</option>
@@ -494,44 +494,44 @@ const OwnerDashboard = () => {
 
                 {/* Contact Info */}
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Contact Phone / Info *</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Contact Phone / Info *</label>
                   <input
                     type="text"
                     placeholder="e.g. +1 (555) 019-2834 or owner@email.com"
                     value={contactInfo}
                     onChange={(e) => setContactInfo(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
 
                 {/* Amenities */}
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-655 dark:text-slate-350 block">Amenities (comma-separated)</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Amenities (comma-separated)</label>
                   <input
                     type="text"
                     placeholder="e.g. Private Bath, WiFi, Gym, AC"
                     value={amenities}
                     onChange={(e) => setAmenities(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
 
                 {/* Description */}
                 <div className="sm:col-span-3 space-y-1">
-                  <label className="text-xs font-bold text-slate-655 dark:text-slate-350 block">Property Description</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Property Description</label>
                   <textarea
                     rows={4}
                     placeholder="Provide details about the room size, roommates, apartment rules..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-202 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
 
                 {/* Photos */}
                 <div className="sm:col-span-3 space-y-1">
-                  <label className="text-xs font-bold text-slate-655 dark:text-slate-355 block">Upload Property Photos</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Upload Property Photos</label>
                   <input
                     type="file"
                     multiple

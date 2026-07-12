@@ -16,6 +16,10 @@ const TenantDashboard = () => {
   const [maxBudget, setMaxBudget] = useState('');
   const [moveInDate, setMoveInDate] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
+  const [roomType, setRoomType] = useState('');
+  const [furnishing, setFurnishing] = useState('');
+  const [gender, setGender] = useState('');
+  const [lifestyle, setLifestyle] = useState('');
   
   const [showFilters, setShowFilters] = useState(false);
 
@@ -28,6 +32,10 @@ const TenantDashboard = () => {
       if (minBudget) params.min_budget = minBudget;
       if (maxBudget) params.max_budget = maxBudget;
       if (moveInDate) params.move_in_date = moveInDate;
+      if (roomType) params.room_type = roomType;
+      if (furnishing) params.furnishing = furnishing;
+      if (gender) params.gender = gender;
+      if (lifestyle) params.lifestyle = lifestyle;
 
       const res = await api.get('/listings', { params });
       setListings(res.data.listings || []);
@@ -40,7 +48,9 @@ const TenantDashboard = () => {
 
   useEffect(() => {
     fetchListings();
-  }, [searchQuery, minBudget, maxBudget, moveInDate, locationQuery]);
+  }, [searchQuery, minBudget, maxBudget, moveInDate, locationQuery, roomType, furnishing, gender, lifestyle]);
+
+  const filteredListings = listings;
 
   return (
     <div className="space-y-8 py-2 animate-fade-in">
@@ -160,6 +170,62 @@ const TenantDashboard = () => {
               </div>
             </div>
 
+            {/* Gender Preference */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase">Gender Preference</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              >
+                <option value="">Any</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+
+            {/* Room Type */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase">Room Type</label>
+              <select
+                value={roomType}
+                onChange={(e) => setRoomType(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              >
+                <option value="">Any</option>
+                <option value="single">Single</option>
+                <option value="shared">Shared</option>
+                <option value="entire_flat">Entire Flat</option>
+              </select>
+            </div>
+
+            {/* Furnishing Status */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase">Furnishing Status</label>
+              <select
+                value={furnishing}
+                onChange={(e) => setFurnishing(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              >
+                <option value="">Any</option>
+                <option value="unfurnished">Unfurnished</option>
+                <option value="semi-furnished">Semi-Furnished</option>
+                <option value="fully-furnished">Fully Furnished</option>
+              </select>
+            </div>
+
+            {/* Lifestyle Habits */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase">Lifestyle Habits</label>
+              <input
+                type="text"
+                placeholder="e.g. non-smoker, clean"
+                value={lifestyle}
+                onChange={(e) => setLifestyle(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+            </div>
+
           </div>
         )}
 
@@ -171,15 +237,15 @@ const TenantDashboard = () => {
           <div className="flex justify-center py-20">
             <Loader2 className="animate-spin text-blue-600" size={32} />
           </div>
-        ) : listings.length === 0 ? (
+        ) : filteredListings.length === 0 ? (
           <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/50 space-y-3">
-            <SlidersHorizontal size={40} className="mx-auto text-slate-300 dark:text-slate-650" />
+            <SlidersHorizontal size={40} className="mx-auto text-slate-300 dark:text-slate-600" />
             <h3 className="font-extrabold text-base text-slate-900 dark:text-white">No Listings Found</h3>
             <p className="text-xs text-slate-400 max-w-xs mx-auto font-medium">Try broadening your search query filters or locations to see more matches.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {listings.map((listing) => (
+            {filteredListings.map((listing) => (
               <ListingCard key={listing.id} listing={listing} />
             ))}
           </div>

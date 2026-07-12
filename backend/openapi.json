@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Rent & Flatmate Finder API",
-    "description": "REST API documentation for the Rent & Flatmate Finder application, featuring role-based routing (Tenant, Owner, Admin), property listings, matchmaking engines, and messaging integrations.",
+    "title": "Staylio API",
+    "description": "REST API documentation for the Staylio application, featuring role-based routing (Tenant, Owner, Admin), property listings, matchmaking engines, and messaging integrations.",
     "version": "1.0.0"
   },
   "servers": [

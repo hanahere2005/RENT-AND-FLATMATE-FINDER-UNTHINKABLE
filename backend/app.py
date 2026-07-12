@@ -52,7 +52,7 @@ def create_app():
         
     @app.route('/', methods=['GET'])
     def api_root():
-        return jsonify({"message": "Rent & Flatmate Finder API is running successfully.", "status": "online"}), 200
+        return jsonify({"message": "Staylio API is running successfully.", "status": "online"}), 200
         
     # Standard Error Handlers
     @app.errorhandler(404)
@@ -75,16 +75,22 @@ def create_app():
             os.makedirs(app.config['UPLOAD_FOLDER'])
             
         db.create_all()
+        try:
+            db.session.execute(db.text("ALTER TABLE tenant_profiles ADD COLUMN lifestyle_habits TEXT"))
+            db.session.commit()
+            print("Successfully added lifestyle_habits column to tenant_profiles table.")
+        except Exception:
+            db.session.rollback()
         
         # Create a default admin user if it does not exist
         from backend.models.user import User
-        admin_user = User.query.filter_by(role='admin').first()
-        if not admin_user:
-            admin = User(email="admin@rentflatmate.com", role="admin")
-            admin.set_password("admin123")
-            db.session.add(admin)
-            db.session.commit()
-            print("Default admin user created: admin@rentflatmate.com / admin123")
+        for email in ["admin@staylio.com", "admin@rentflatmate.com"]:
+            admin_user = User.query.filter_by(email=email).first()
+            if not admin_user:
+                admin = User(email=email, role="admin")
+                admin.set_password("admin123")
+                db.session.add(admin)
+        db.session.commit()
             
     return app
 

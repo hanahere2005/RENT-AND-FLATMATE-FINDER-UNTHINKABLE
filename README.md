@@ -1,6 +1,6 @@
-# Rent & Flatmate Finder
+# Staylio
 
-Rent & Flatmate Finder is a production-ready, full-stack web application designed to connect property owners with tenants, and calculate compatibility matching scores based on preferences (budget, locations, dates, furnishing levels). It supports real-time chat via WebSockets, in-app notifications, SMTP email alerts, and an administration dashboard.
+Staylio is a production-ready, full-stack web application designed to connect property owners with tenants, and calculate compatibility matching scores based on preferences (budget, locations, dates, furnishing levels). It supports real-time chat via WebSockets, in-app notifications, SMTP email alerts, and an administration dashboard.
 
 ---
 
@@ -93,7 +93,7 @@ rent-flatmate-finder/
    python app.py
    ```
    *The database schema tables and directories will be generated automatically. A default administrative account will be seeded on startup:*
-   - **Email**: `admin@rentflatmate.com`
+   - **Email**: `admin@staylio.com`
    - **Password**: `admin123`
 
 ### 2. Frontend Setup

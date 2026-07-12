@@ -93,7 +93,7 @@ const AdminDashboard = () => {
           onClick={() => setActiveTab('analytics')}
           className={`px-6 py-3 font-extrabold text-sm border-b-2 transition-all flex items-center gap-2
             ${activeTab === 'analytics' 
-              ? 'border-pink-600 text-pink-600 dark:text-pink-450' 
+              ? 'border-pink-600 text-pink-600 dark:text-pink-400' 
               : 'border-transparent text-slate-500 hover:text-slate-950 dark:hover:text-white'}`}
         >
           <BarChart3 size={16} />
@@ -103,12 +103,12 @@ const AdminDashboard = () => {
           onClick={() => setActiveTab('users')}
           className={`px-6 py-3 font-extrabold text-sm border-b-2 transition-all flex items-center gap-2
             ${activeTab === 'users' 
-              ? 'border-pink-600 text-pink-600 dark:text-pink-450' 
+              ? 'border-pink-600 text-pink-600 dark:text-pink-400' 
               : 'border-transparent text-slate-500 hover:text-slate-950 dark:hover:text-white'}`}
         >
           <Users size={16} />
           Manage Users
-          <span className="ml-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350 px-2 py-0.5 rounded-full text-[10px] font-bold">
+          <span className="ml-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-bold">
             {usersList.length}
           </span>
         </button>
@@ -116,12 +116,12 @@ const AdminDashboard = () => {
           onClick={() => setActiveTab('listings')}
           className={`px-6 py-3 font-extrabold text-sm border-b-2 transition-all flex items-center gap-2
             ${activeTab === 'listings' 
-              ? 'border-pink-600 text-pink-600 dark:text-pink-450' 
+              ? 'border-pink-600 text-pink-600 dark:text-pink-400' 
               : 'border-transparent text-slate-500 hover:text-slate-950 dark:hover:text-white'}`}
         >
           <Home size={16} />
           Manage Listings
-          <span className="ml-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350 px-2 py-0.5 rounded-full text-[10px] font-bold">
+          <span className="ml-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-bold">
             {listingsList.length}
           </span>
         </button>
@@ -133,7 +133,7 @@ const AdminDashboard = () => {
           {loading || !analytics ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-32 bg-slate-100 dark:bg-slate-850 rounded-2xl"></div>
+                <div key={i} className="h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl"></div>
               ))}
             </div>
           ) : (
@@ -221,7 +221,7 @@ const AdminDashboard = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700 font-medium">
                   {usersList.map((usr) => (
-                    <tr key={usr.id} className="hover:bg-slate-50 dark:hover:bg-slate-750/30 transition-colors">
+                    <tr key={usr.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <Mail size={14} className="text-slate-400" />
@@ -238,7 +238,7 @@ const AdminDashboard = () => {
                           {usr.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 dark:text-slate-450">
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                         {new Date(usr.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -289,13 +289,13 @@ const AdminDashboard = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700 font-medium">
                   {listingsList.map((lst) => (
-                    <tr key={lst.id} className="hover:bg-slate-50 dark:hover:bg-slate-750/30 transition-colors">
+                    <tr key={lst.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
                         {lst.title}
                       </td>
                       <td className="px-6 py-4 font-extrabold">${lst.rent}</td>
-                      <td className="px-6 py-4 text-slate-500 dark:text-slate-450">{lst.location}</td>
-                      <td className="px-6 py-4 text-slate-550 dark:text-slate-400">{lst.owner_email}</td>
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{lst.location}</td>
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{lst.owner_email}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase
                           ${lst.is_filled 

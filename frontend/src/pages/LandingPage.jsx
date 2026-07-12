@@ -37,8 +37,8 @@ const LandingPage = () => {
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
-            Find the perfect flat.<br/>
-            Connect with the ideal <span className="bg-gradient-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">flatmate</span>.
+            Find the Right Home.<br/>
+            Meet the Right <span className="bg-gradient-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">People</span>.
           </h1>
 
           <p className="text-slate-400 text-base sm:text-lg max-w-2xl font-medium leading-relaxed">
@@ -78,7 +78,7 @@ const LandingPage = () => {
       {/* Feature Grid */}
       <section className="space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Why use Rent &amp; Flatmate Finder?</h2>
+          <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Why use Staylio?</h2>
           <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium">Built with cutting-edge tools to secure bookings, matches, and real-time chat operations.</p>
         </div>
 
@@ -115,7 +115,7 @@ const LandingPage = () => {
           </div>
 
           <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 dark:bg-blue-500/5 flex items-center justify-center text-blue-605 dark:text-blue-400">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/10 dark:bg-blue-500/5 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <Home size={24} />
             </div>
             <h3 className="font-extrabold text-lg text-slate-950 dark:text-white">Property Management</h3>

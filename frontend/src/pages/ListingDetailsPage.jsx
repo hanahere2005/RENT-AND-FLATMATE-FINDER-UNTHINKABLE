@@ -73,7 +73,7 @@ const ListingDetailsPage = () => {
   if (!listing) {
     return (
       <div className="text-center py-20 space-y-4">
-        <Home className="mx-auto text-slate-350" size={40} />
+        <Home className="mx-auto text-slate-300" size={40} />
         <h3 className="font-extrabold text-base">Listing Not Found</h3>
         <p className="text-xs text-slate-400 font-medium">The listing you are trying to view does not exist or has been removed.</p>
         <Link to="/" className="inline-block text-xs font-black text-blue-600 hover:underline">Go Home</Link>
@@ -124,7 +124,7 @@ const ListingDetailsPage = () => {
             
             {/* Rent badge */}
             <div className="absolute bottom-4 left-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800/80 font-black text-sm text-slate-900 dark:text-white shadow">
-              ${listing.rent} <span className="text-[10px] text-slate-450 dark:text-slate-400 font-bold uppercase">/ month</span>
+              ${listing.rent} <span className="text-[10px] text-slate-400 dark:text-slate-400 font-bold uppercase">/ month</span>
             </div>
           </div>
 
@@ -141,16 +141,16 @@ const ListingDetailsPage = () => {
             </div>
 
             {/* Price/Availability info tags */}
-            <div className="grid grid-cols-2 gap-4 border-t border-b border-slate-50 dark:border-slate-700/50 py-4 text-xs font-bold text-slate-650 dark:text-slate-400">
+            <div className="grid grid-cols-2 gap-4 border-t border-b border-slate-50 dark:border-slate-700/50 py-4 text-xs font-bold text-slate-600 dark:text-slate-400">
               <div className="flex items-center gap-2">
-                <DollarSign size={18} className="text-blue-550 dark:text-blue-400" />
+                <DollarSign size={18} className="text-blue-500 dark:text-blue-400" />
                 <div>
                   <span className="block text-[10px] text-slate-400 uppercase font-black">Monthly Rent</span>
                   <span>${listing.rent}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Calendar size={18} className="text-pink-550 dark:text-pink-400" />
+                <Calendar size={18} className="text-pink-500 dark:text-pink-400" />
                 <div>
                   <span className="block text-[10px] text-slate-400 uppercase font-black">Available From</span>
                   <span>{new Date(listing.available_from).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}</span>
@@ -176,7 +176,7 @@ const ListingDetailsPage = () => {
                   {listing.amenities.map((amenity) => (
                     <span 
                       key={amenity} 
-                      className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/80 text-[10px] font-extrabold text-slate-600 dark:text-slate-350"
+                      className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/80 text-[10px] font-extrabold text-slate-600 dark:text-slate-300"
                     >
                       {amenity}
                     </span>
@@ -200,55 +200,79 @@ const ListingDetailsPage = () => {
               {/* Score ring */}
               <div className="flex items-center gap-4">
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center font-black text-sm border-4 shadow-sm
-                  ${compatScore.score >= 80 
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-400' 
-                    : compatScore.score >= 60 
-                      ? 'bg-amber-50 text-amber-700 border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-450' 
-                      : 'bg-rose-50 text-rose-700 border-rose-500/20 dark:bg-rose-950/20 dark:text-rose-450'}`}>
+                  ${(compatScore.score === 0 || compatScore.status === 'No preferences selected')
+                    ? 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-950/20 dark:text-slate-400'
+                    : compatScore.score >= 80 
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-400' 
+                      : compatScore.score >= 60 
+                        ? 'bg-amber-50 text-amber-700 border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-400' 
+                        : 'bg-rose-50 text-rose-700 border-rose-500/20 dark:bg-rose-950/20 dark:text-rose-400'}`}>
                   {compatScore.score}%
                 </div>
                 <div>
                   <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wide">Overall Match Rating</span>
-                  <span className="text-xs font-extrabold text-slate-700 dark:text-slate-205 leading-none">
-                    {compatScore.score >= 80 ? 'Highly Compatible' : compatScore.score >= 60 ? 'Moderate Match' : 'Low Compatibility'}
+                  <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 leading-none">
+                    {(compatScore.score === 0 || compatScore.status === 'No preferences selected')
+                      ? 'Add preferences to calculate AI Match'
+                      : compatScore.score >= 80 ? 'Highly Compatible' : compatScore.score >= 60 ? 'Moderate Match' : 'Low Compatibility'}
                   </span>
                 </div>
               </div>
 
-              {/* Matching factors */}
-              <div className="space-y-2 pt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 border-t border-slate-50 dark:border-slate-700">
-                <div className="flex justify-between items-center">
-                  <span>Budget Compatibility:</span>
-                  <span className={compatScore.match_breakdown?.budget_match ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-                    {compatScore.match_breakdown?.budget_match ? 'Yes' : 'Over Budget'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Location Preference:</span>
-                  <span className={compatScore.match_breakdown?.location_match ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}>
-                    {compatScore.match_breakdown?.location_match ? 'Matched' : 'Unmatched'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Move-In Schedule:</span>
-                  <span className={compatScore.match_breakdown?.date_match ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}>
-                    {compatScore.match_breakdown?.date_match ? 'Aligned' : 'Different'}
-                  </span>
-                </div>
-              </div>
-
-              {/* AI scoring reasoning */}
-              {compatScore.reasoning && (
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/80 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-extrabold text-xs text-blue-600 dark:text-blue-400">
-                    <Sparkles size={14} className="animate-pulse" />
-                    <span>AI Matching Analysis</span>
+              {/* Matching factors breakdown */}
+              {compatScore.compatibility_breakdown && (compatScore.score > 0 && compatScore.status !== 'No preferences selected') && (
+                <div className="space-y-2.5 pt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 border-t border-slate-50 dark:border-slate-700">
+                  <div className="flex justify-between items-center">
+                    <span>Budget Match (35%):</span>
+                    <span className={compatScore.compatibility_breakdown.budget >= 25 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                      {compatScore.compatibility_breakdown.budget} / 35 pts
+                    </span>
                   </div>
-                  <p className="text-[10px] font-semibold text-slate-505 dark:text-slate-400 leading-relaxed">
-                    {compatScore.reasoning}
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <span>Location Match (20%):</span>
+                    <span className={compatScore.compatibility_breakdown.location >= 12 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                      {compatScore.compatibility_breakdown.location} / 20 pts
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Lifestyle Match (15%):</span>
+                    <span className={compatScore.compatibility_breakdown.lifestyle >= 10 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                      {compatScore.compatibility_breakdown.lifestyle} / 15 pts
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Gender Preference (10%):</span>
+                    <span className={compatScore.compatibility_breakdown.gender === 10 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                      {compatScore.compatibility_breakdown.gender} / 10 pts
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Occupancy Match (10%):</span>
+                    <span className={compatScore.compatibility_breakdown.occupancy >= 8 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                      {compatScore.compatibility_breakdown.occupancy} / 10 pts
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Amenities Match (10%):</span>
+                    <span className={compatScore.compatibility_breakdown.amenities >= 5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                      {compatScore.compatibility_breakdown.amenities} / 10 pts
+                    </span>
+                  </div>
                 </div>
               )}
+
+              {/* AI scoring reasoning */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/80 space-y-1.5">
+                <div className="flex items-center gap-1.5 font-extrabold text-xs text-blue-600 dark:text-blue-400">
+                  <Sparkles size={14} className={(compatScore.score === 0 || compatScore.status === 'No preferences selected') ? 'text-slate-400' : 'animate-pulse'} />
+                  <span>AI Matching Analysis</span>
+                </div>
+                <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-line">
+                  {(compatScore.score === 0 || compatScore.status === 'No preferences selected')
+                    ? "No preferences selected. Apply dashboard filters or configure your roommate preferences in your profile to analyze matches."
+                    : (compatScore.explanation || compatScore.reasoning)}
+                </p>
+              </div>
 
             </div>
           )}
@@ -273,14 +297,14 @@ const ListingDetailsPage = () => {
                 )}
 
                 {interestStatus === 'pending' && (
-                  <div className="p-3 bg-blue-50/50 dark:bg-slate-900/50 border border-blue-150 rounded-xl text-center text-xs font-bold text-blue-700 dark:text-blue-400">
+                  <div className="p-3 bg-blue-50/50 dark:bg-slate-900/50 border border-blue-100 rounded-xl text-center text-xs font-bold text-blue-700 dark:text-blue-400">
                     Interest Pending Owner Approval
                   </div>
                 )}
 
                 {interestStatus === 'accepted' && (
                   <div className="space-y-3">
-                    <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-150 rounded-xl text-center text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1.5">
+                    <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 rounded-xl text-center text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1.5">
                       <ShieldCheck size={16} />
                       Request Accepted!
                     </div>
@@ -293,8 +317,8 @@ const ListingDetailsPage = () => {
                   </div>
                 )}
 
-                {interestStatus === 'rejected' && (
-                  <div className="p-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-150 rounded-xl text-center text-xs font-bold text-rose-700 dark:text-rose-400">
+                {(interestStatus === 'rejected' || interestStatus === 'declined') && (
+                  <div className="p-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 rounded-xl text-center text-xs font-bold text-rose-700 dark:text-rose-400">
                     Request Declined by Owner
                   </div>
                 )}

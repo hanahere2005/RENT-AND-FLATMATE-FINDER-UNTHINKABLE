@@ -121,11 +121,11 @@ const MainLayout = ({ children }) => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20 transform group-hover:scale-105 transition-transform">
-              <span className="text-white font-black text-xl tracking-tighter">R</span>
+              <span className="text-white font-black text-xl tracking-tighter">S</span>
             </div>
             <div>
-              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-slate-900 to-blue-900 dark:from-white dark:to-blue-200 bg-clip-text text-transparent">Rent</span>
-              <span className="font-medium text-lg text-pink-600 dark:text-pink-400">&amp;Flatmate</span>
+              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-slate-900 to-blue-900 dark:from-white dark:to-blue-200 bg-clip-text text-transparent">Stay</span>
+              <span className="font-medium text-lg text-pink-600 dark:text-pink-400">lio</span>
             </div>
           </Link>
 
@@ -175,7 +175,7 @@ const MainLayout = ({ children }) => {
                   >
                     <Bell size={18} />
                     {unreadCount > 0 && (
-                      <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-pink-650 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+                      <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-pink-600 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
                         {unreadCount}
                       </span>
                     )}
@@ -241,7 +241,7 @@ const MainLayout = ({ children }) => {
               <div className="hidden md:flex items-center gap-3">
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-sm font-bold text-slate-650 dark:text-slate-300 hover:text-blue-600 transition-colors"
+                  className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 transition-colors"
                 >
                   Login
                 </Link>
@@ -309,9 +309,9 @@ const MainLayout = ({ children }) => {
       </main>
 
       {/* Modern Footer */}
-      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-850 py-8 text-center text-xs text-slate-400 dark:text-slate-500 transition-colors">
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-8 text-center text-xs text-slate-400 dark:text-slate-500 transition-colors">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>&copy; {new Date().getFullYear()} Rent &amp; Flatmate Finder. Production Ready.</p>
+          <p>&copy; {new Date().getFullYear()} Staylio. All Rights Reserved.</p>
           <div className="flex gap-4 font-medium text-slate-500 dark:text-slate-400">
             <Link to="/about" className="hover:underline">About</Link>
             <Link to="/terms" className="hover:underline">Terms</Link>

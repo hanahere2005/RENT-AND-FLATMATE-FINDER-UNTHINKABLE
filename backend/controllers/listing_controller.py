@@ -102,9 +102,14 @@ def create_listing():
 def get_listings():
     # Parse query filters
     location = request.args.get('location')
-    budget_max = request.args.get('budget_max')
+    budget_max = request.args.get('max_budget') or request.args.get('budget_max')
+    budget_min = request.args.get('min_budget') or request.args.get('budget_min')
     room_type = request.args.get('room_type')
     furnishing = request.args.get('furnishing')
+    gender = request.args.get('gender')
+    lifestyle = request.args.get('lifestyle')
+    search = request.args.get('search')
+    move_in_date = request.args.get('move_in_date')
     sort_by = request.args.get('sort_by', 'created_at')  # 'created_at', 'rent', 'compatibility'
     page = int(request.args.get('page', 1))
     limit = int(request.args.get('limit', 10))
@@ -112,24 +117,11 @@ def get_listings():
     # Query base: only show active (not filled) listings
     query = Listing.query.filter_by(is_filled=False)
     
-    if location:
-        query = query.filter(Listing.location.ilike(f"%{location}%"))
-    if budget_max:
-        try:
-            query = query.filter(Listing.rent <= float(budget_max))
-        except ValueError:
-            pass
-    if room_type:
-        query = query.filter_by(room_type=room_type)
-    if furnishing:
-        query = query.filter_by(furnishing_status=furnishing)
-        
     # Check if a tenant is logged in to return their compatibility scores
     tenant_user_id = None
     tenant_profile = None
     try:
         verify_jwt_in_request(optional=True)
-        # Verify jwt exists in request
         from flask_jwt_extended import get_jwt
         claims = get_jwt()
         if claims.get('role') == 'tenant':
@@ -137,48 +129,66 @@ def get_listings():
             tenant_profile = TenantProfile.query.filter_by(user_id=tenant_user_id).first()
     except Exception:
         pass
+
+    # Build prefs from query params to see if preferences were supplied
+    prefs = {}
+    for key, val in [
+        ('location', location),
+        ('max_budget', budget_max),
+        ('min_budget', budget_min),
+        ('room_type', room_type),
+        ('furnishing', furnishing),
+        ('gender', gender),
+        ('lifestyle', lifestyle),
+        ('search', search),
+        ('move_in_date', move_in_date)
+    ]:
+        if val:
+            prefs[key] = val
+
+    filters_supplied = len(prefs) > 0
         
-    # If sorting by compatibility, we MUST have a tenant logged in.
-    # We fetch all matching listings, calculate scores if not already cached, and sort.
     listings_list = query.all()
     
     processed_listings = []
     for listing in listings_list:
         ldict = listing.to_dict()
-        ldict['compatibility'] = None
         
         if tenant_profile:
-            # Check for cached compatibility score
-            compat = CompatibilityScore.query.filter_by(tenant_id=tenant_user_id, listing_id=listing.id).first()
-            if not compat:
-                # Compute on the fly and save
-                try:
-                    score, explanation, is_ai = calculate_compatibility(listing, tenant_profile)
-                    compat = CompatibilityScore(
-                        tenant_id=tenant_user_id,
-                        listing_id=listing.id,
-                        score=score,
-                        explanation=explanation,
-                        is_ai=is_ai
-                    )
-                    db.session.add(compat)
-                    db.session.commit()
-                except Exception as e:
-                    db.session.rollback()
-                    current_app.logger.error(f"Error generating score on the fly: {str(e)}")
-                    compat = None
-                    
-            if compat:
-                ldict['compatibility'] = compat.to_dict()
+            if filters_supplied:
+                # Dynamic matching based on active filters
+                from backend.services.ai_service import calculate_compatibility_dynamic
+                score, explanation, breakdown = calculate_compatibility_dynamic(listing, prefs)
+                ldict['compatibility'] = {
+                    "score": score,
+                    "explanation": explanation,
+                    "compatibility_breakdown": breakdown,
+                    "status": "Calculated dynamically"
+                }
+                ldict['compatibility_score'] = score
+                ldict['compatibility_breakdown'] = breakdown
+            else:
+                # No filters supplied: compatibility is 0
+                ldict['compatibility'] = {
+                    "score": 0,
+                    "status": "No preferences selected"
+                }
+                ldict['compatibility_score'] = 0
+                ldict['compatibility_breakdown'] = None
+        else:
+            ldict['compatibility'] = None
+            ldict['compatibility_score'] = None
+            ldict['compatibility_breakdown'] = None
                 
         processed_listings.append(ldict)
         
     # Sort listings list
-    if sort_by == 'rent':
+    if filters_supplied and tenant_profile:
+        processed_listings.sort(key=lambda x: x['compatibility']['score'] if (x.get('compatibility') and x['compatibility'].get('score') is not None) else -1, reverse=True)
+    elif sort_by == 'rent':
         processed_listings.sort(key=lambda x: x['rent'])
     elif sort_by == 'compatibility' and tenant_profile:
-        # Sort desc by score, missing scores go to bottom
-        processed_listings.sort(key=lambda x: x['compatibility']['score'] if x['compatibility'] else -1, reverse=True)
+        processed_listings.sort(key=lambda x: x['compatibility']['score'] if (x.get('compatibility') and x['compatibility'].get('score') is not None) else -1, reverse=True)
     else:  # default sorting by created_at desc
         processed_listings.sort(key=lambda x: x['created_at'], reverse=True)
         
@@ -201,33 +211,96 @@ def get_listing_details(listing_id):
     if not listing:
         return jsonify({"error": "Listing not found"}), 404
         
+    # Check if search filters were supplied to the details route as query params
+    location = request.args.get('location')
+    budget_max = request.args.get('max_budget') or request.args.get('budget_max')
+    budget_min = request.args.get('min_budget') or request.args.get('budget_min')
+    room_type = request.args.get('room_type')
+    furnishing = request.args.get('furnishing')
+    gender = request.args.get('gender')
+    lifestyle = request.args.get('lifestyle')
+    search = request.args.get('search')
+    move_in_date = request.args.get('move_in_date')
+
+    prefs = {}
+    for key, val in [
+        ('location', location),
+        ('max_budget', budget_max),
+        ('min_budget', budget_min),
+        ('room_type', room_type),
+        ('furnishing', furnishing),
+        ('gender', gender),
+        ('lifestyle', lifestyle),
+        ('search', search),
+        ('move_in_date', move_in_date)
+    ]:
+        if val:
+            prefs[key] = val
+
+    filters_supplied = len(prefs) > 0
+
     ldict = listing.to_dict()
     ldict['compatibility'] = None
+    ldict['compatibility_score'] = None
+    ldict['compatibility_breakdown'] = None
     
-    # Try to load compatibility score if tenant is logged in
     try:
         verify_jwt_in_request(optional=True)
         from flask_jwt_extended import get_jwt
         claims = get_jwt()
         if claims.get('role') == 'tenant':
             tenant_user_id = int(get_jwt_identity())
-            compat = CompatibilityScore.query.filter_by(tenant_id=tenant_user_id, listing_id=listing.id).first()
-            if not compat:
-                # Compute on the fly
-                tenant_profile = TenantProfile.query.filter_by(user_id=tenant_user_id).first()
+            tenant_profile = TenantProfile.query.filter_by(user_id=tenant_user_id).first()
+            
+            if filters_supplied:
+                # Dynamic matching based on active filters
+                from backend.services.ai_service import calculate_compatibility_dynamic
+                score, explanation, breakdown = calculate_compatibility_dynamic(listing, prefs)
+                ldict['compatibility'] = {
+                    "score": score,
+                    "explanation": explanation,
+                    "compatibility_breakdown": breakdown,
+                    "status": "Calculated dynamically"
+                }
+                ldict['compatibility_score'] = score
+                ldict['compatibility_breakdown'] = breakdown
+            else:
+                # Fallback to tenant profile if it is configured
+                is_configured = False
                 if tenant_profile:
-                    score, explanation, is_ai = calculate_compatibility(listing, tenant_profile)
-                    compat = CompatibilityScore(
-                        tenant_id=tenant_user_id,
-                        listing_id=listing.id,
-                        score=score,
-                        explanation=explanation,
-                        is_ai=is_ai
-                    )
-                    db.session.add(compat)
-                    db.session.commit()
-            if compat:
-                ldict['compatibility'] = compat.to_dict()
+                    if tenant_profile.preferred_location and tenant_profile.preferred_location != 'Not specified':
+                        is_configured = True
+                    if tenant_profile.budget_max and tenant_profile.budget_max != 1000.0:
+                        is_configured = True
+                    if tenant_profile.lifestyle_habits:
+                        is_configured = True
+                        
+                if is_configured:
+                    compat = CompatibilityScore.query.filter_by(tenant_id=tenant_user_id, listing_id=listing.id).first()
+                    if not compat:
+                        # Compute on the fly
+                        score, explanation, is_ai = calculate_compatibility(listing, tenant_profile)
+                        compat = CompatibilityScore(
+                            tenant_id=tenant_user_id,
+                            listing_id=listing.id,
+                            score=score,
+                            explanation=explanation,
+                            is_ai=is_ai
+                        )
+                        db.session.add(compat)
+                        db.session.commit()
+                    if compat:
+                        compat_dict = compat.to_dict()
+                        ldict['compatibility'] = compat_dict
+                        ldict['compatibility_score'] = compat_dict['score']
+                        ldict['compatibility_breakdown'] = compat_dict['compatibility_breakdown']
+                else:
+                    ldict['compatibility'] = {
+                        "score": 0,
+                        "status": "No preferences selected"
+                    }
+                    ldict['compatibility_score'] = 0
+                    ldict['compatibility_breakdown'] = None
     except Exception:
         pass
         

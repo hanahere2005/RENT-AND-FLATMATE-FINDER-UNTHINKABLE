@@ -12,6 +12,7 @@ class TenantProfile(db.Model):
     move_in_date = db.Column(db.Date, nullable=False)
     occupation = db.Column(db.String(100), nullable=False)
     bio = db.Column(db.Text, nullable=True)
+    lifestyle_habits = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -24,11 +25,13 @@ class TenantProfile(db.Model):
             'user_id': self.user_id,
             'email': self.user.email if self.user else None,
             'preferred_location': self.preferred_location,
+            'preferred_locations': [l.strip() for l in self.preferred_location.split(',') if l.strip()] if self.preferred_location else [],
             'budget_min': self.budget_min,
             'budget_max': self.budget_max,
             'move_in_date': self.move_in_date.isoformat() if self.move_in_date else None,
             'occupation': self.occupation,
             'bio': self.bio,
+            'lifestyle_habits': [h.strip() for h in self.lifestyle_habits.split(',') if h.strip()] if self.lifestyle_habits else [],
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

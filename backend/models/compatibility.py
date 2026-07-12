@@ -21,12 +21,30 @@ class CompatibilityScore(db.Model):
     listing = db.relationship('Listing', back_populates='compatibility_scores')
     
     def to_dict(self):
+        import json
+        explanation_text = self.explanation
+        breakdown = {
+            "budget": 0,
+            "location": 0,
+            "lifestyle": 0,
+            "gender": 0,
+            "occupancy": 0,
+            "amenities": 0
+        }
+        try:
+            data = json.loads(self.explanation)
+            explanation_text = data.get('text', self.explanation)
+            breakdown = data.get('breakdown', breakdown)
+        except Exception:
+            pass
+            
         return {
             'id': self.id,
             'tenant_id': self.tenant_id,
             'listing_id': self.listing_id,
             'score': self.score,
-            'explanation': self.explanation,
+            'explanation': explanation_text,
+            'compatibility_breakdown': breakdown,
             'is_ai': self.is_ai,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

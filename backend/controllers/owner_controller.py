@@ -11,10 +11,18 @@ def get_owner_listings():
     user_id = get_jwt_identity()
     owner = OwnerProfile.query.filter_by(user_id=user_id).first()
     if not owner:
-        return jsonify({"error": "Forbidden: Owner role required"}), 403
+        return jsonify({
+            "success": False,
+            "error": "Forbidden: Owner role required",
+            "code": 403
+        }), 403
         
     listings = Listing.query.filter_by(owner_id=owner.id).all()
-    return jsonify([l.to_dict() for l in listings]), 200
+    return jsonify({
+        "success": True,
+        "message": "Listings retrieved successfully",
+        "data": [l.to_dict() for l in listings]
+    }), 200
 
 
 @jwt_required()
@@ -22,7 +30,11 @@ def get_owner_requests():
     user_id = get_jwt_identity()
     owner = OwnerProfile.query.filter_by(user_id=user_id).first()
     if not owner:
-        return jsonify({"error": "Forbidden: Owner role required"}), 403
+        return jsonify({
+            "success": False,
+            "error": "Forbidden: Owner role required",
+            "code": 403
+        }), 403
         
     # Get all interest requests for listings belonging to this owner
     requests = InterestRequest.query.join(Listing).filter(Listing.owner_id == owner.id).all()
@@ -32,10 +44,14 @@ def get_owner_requests():
         r_dict = req.to_dict()
         # Find compatibility score
         compat = CompatibilityScore.query.filter_by(tenant_id=req.tenant_id, listing_id=req.listing_id).first()
-        r_dict['compatibility_score'] = compat.score if compat else None
+        r_dict['compatibility'] = compat.to_dict() if compat else None
         results.append(r_dict)
         
-    return jsonify(results), 200
+    return jsonify({
+        "success": True,
+        "message": "Tenant requests retrieved successfully",
+        "data": results
+    }), 200
 
 
 @jwt_required()
@@ -43,17 +59,33 @@ def accept_request(request_id):
     user_id = get_jwt_identity()
     owner = OwnerProfile.query.filter_by(user_id=user_id).first()
     if not owner:
-        return jsonify({"error": "Forbidden"}), 403
+        return jsonify({
+            "success": False,
+            "error": "Forbidden: Owner role required",
+            "code": 403
+        }), 403
         
     req = InterestRequest.query.get(request_id)
     if not req:
-        return jsonify({"error": "Request not found"}), 404
+        return jsonify({
+            "success": False,
+            "error": "Request not found",
+            "code": 404
+        }), 404
         
     if req.listing.owner_id != owner.id:
-        return jsonify({"error": "Unauthorized"}), 403
+        return jsonify({
+            "success": False,
+            "error": "Unauthorized to update this request",
+            "code": 403
+        }), 403
         
     if req.status != 'pending':
-        return jsonify({"error": f"Request cannot be accepted because status is already '{req.status}'"}), 400
+        return jsonify({
+            "success": False,
+            "error": f"Request cannot be accepted because status is already '{req.status}'",
+            "code": 400
+        }), 400
         
     try:
         req.status = 'accepted'
@@ -90,19 +122,30 @@ def accept_request(request_id):
         
         # Send Email notification
         try:
+            owner_name = owner.company_name or owner.user.email.split('@')[0].capitalize()
             notify_tenant_request_accepted(
                 tenant_email=req.tenant.email,
+                owner_name=owner_name,
                 owner_email=owner.user.email,
                 listing_title=req.listing.title
             )
         except Exception as e:
             logger.error(f"Failed to send email to accepted tenant: {str(e)}")
             
-        return jsonify({"message": "Request accepted, chat room initialized", "request": req.to_dict()}), 200
+        return jsonify({
+            "success": True,
+            "message": "Request accepted, chat room initialized",
+            "data": req.to_dict()
+        }), 200
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Failed to accept request", "details": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "error": "Failed to accept request",
+            "details": str(e),
+            "code": 500
+        }), 500
 
 
 @jwt_required()
@@ -110,20 +153,36 @@ def reject_request(request_id):
     user_id = get_jwt_identity()
     owner = OwnerProfile.query.filter_by(user_id=user_id).first()
     if not owner:
-        return jsonify({"error": "Forbidden"}), 403
+        return jsonify({
+            "success": False,
+            "error": "Forbidden: Owner role required",
+            "code": 403
+        }), 403
         
     req = InterestRequest.query.get(request_id)
     if not req:
-        return jsonify({"error": "Request not found"}), 404
+        return jsonify({
+            "success": False,
+            "error": "Request not found",
+            "code": 404
+        }), 404
         
     if req.listing.owner_id != owner.id:
-        return jsonify({"error": "Unauthorized"}), 403
+        return jsonify({
+            "success": False,
+            "error": "Unauthorized to update this request",
+            "code": 403
+        }), 403
         
     if req.status != 'pending':
-        return jsonify({"error": f"Request cannot be rejected because status is already '{req.status}'"}), 400
+        return jsonify({
+            "success": False,
+            "error": f"Request cannot be rejected because status is already '{req.status}'",
+            "code": 400
+        }), 400
         
     try:
-        req.status = 'rejected'
+        req.status = 'declined'
         
         # Create In-App Notification
         notif = Notification(
@@ -144,8 +203,38 @@ def reject_request(request_id):
         except Exception as e:
             logger.error(f"Failed to send email to rejected tenant: {str(e)}")
             
-        return jsonify({"message": "Request declined", "request": req.to_dict()}), 200
+        return jsonify({
+            "success": True,
+            "message": "Request declined",
+            "data": req.to_dict()
+        }), 200
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Failed to decline request", "details": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "error": "Failed to decline request",
+            "details": str(e),
+            "code": 500
+        }), 500
+
+
+@jwt_required()
+def update_request_status(request_id):
+    """
+    Standardized request handler mapped to PUT /owner/requests/<request_id> payload.
+    Supports status updates for 'accepted' and 'rejected'/'declined'.
+    """
+    data = request.get_json() or {}
+    status = data.get('status', '').strip().lower()
+    
+    if status in ['accepted', 'accept']:
+        return accept_request(request_id)
+    elif status in ['rejected', 'decline', 'declined', 'reject']:
+        return reject_request(request_id)
+    else:
+        return jsonify({
+            "success": False,
+            "error": f"Invalid request status '{status}'. Must be 'accepted' or 'rejected'.",
+            "code": 400
+        }), 400

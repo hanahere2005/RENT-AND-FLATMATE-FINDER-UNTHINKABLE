@@ -39,7 +39,17 @@ const processQueue = (error, token = null) => {
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.data && response.data.success === true && response.data.hasOwnProperty('data')) {
+      const originalData = response.data.data;
+      if (originalData && typeof originalData === 'object') {
+        originalData.success = true;
+        originalData.message = response.data.message;
+      }
+      response.data = originalData;
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     

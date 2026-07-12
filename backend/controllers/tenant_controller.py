@@ -3,52 +3,99 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from backend.models import db, TenantProfile, User, InterestRequest, Listing, CompatibilityScore, Notification
 from backend.services.ai_service import calculate_compatibility
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 @jwt_required()
 def get_profile():
     user_id = get_jwt_identity()
     profile = TenantProfile.query.filter_by(user_id=user_id).first()
     if not profile:
-        return jsonify({"error": "Profile not found"}), 404
-    return jsonify(profile.to_dict()), 200
+        return jsonify({
+            "success": False,
+            "error": "Profile not found",
+            "code": 404
+        }), 404
+    return jsonify({
+        "success": True,
+        "message": "Profile retrieved successfully",
+        "data": profile.to_dict()
+    }), 200
+
 
 @jwt_required()
 def update_profile():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
     if not user or user.role != 'tenant':
-        return jsonify({"error": "Unauthorized: Tenant role required"}), 403
+        return jsonify({
+            "success": False,
+            "error": "Unauthorized: Tenant role required",
+            "code": 403
+        }), 403
         
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        return jsonify({
+            "success": False,
+            "error": "No data provided",
+            "code": 400
+        }), 400
         
     profile = TenantProfile.query.filter_by(user_id=user_id).first()
     if not profile:
         profile = TenantProfile(user_id=user_id)
         db.session.add(profile)
         
-    profile.preferred_location = data.get('preferred_location', profile.preferred_location)
+    preferred_locs = data.get('preferred_locations')
+    if preferred_locs is not None:
+        if isinstance(preferred_locs, list):
+            profile.preferred_location = ", ".join(preferred_locs)
+        else:
+            profile.preferred_location = str(preferred_locs)
+    elif 'preferred_location' in data:
+        profile.preferred_location = data.get('preferred_location')
+        
     profile.occupation = data.get('occupation', profile.occupation)
     profile.bio = data.get('bio', profile.bio)
+    
+    habits = data.get('lifestyle_habits')
+    if habits is not None:
+        if isinstance(habits, list):
+            profile.lifestyle_habits = ", ".join(habits)
+        else:
+            profile.lifestyle_habits = str(habits)
     
     if 'budget_min' in data:
         try:
             profile.budget_min = float(data.get('budget_min'))
         except ValueError:
-            return jsonify({"error": "Invalid minimum budget"}), 400
+            return jsonify({
+                "success": False,
+                "error": "Invalid minimum budget",
+                "code": 400
+            }), 400
             
     if 'budget_max' in data:
         try:
             profile.budget_max = float(data.get('budget_max'))
         except ValueError:
-            return jsonify({"error": "Invalid maximum budget"}), 400
+            return jsonify({
+                "success": False,
+                "error": "Invalid maximum budget",
+                "code": 400
+            }), 400
             
     if 'move_in_date' in data:
         try:
             profile.move_in_date = datetime.strptime(data.get('move_in_date'), '%Y-%m-%d').date()
         except ValueError:
-            return jsonify({"error": "Invalid move_in_date format (YYYY-MM-DD)"}), 400
+            return jsonify({
+                "success": False,
+                "error": "Invalid move_in_date format (YYYY-MM-DD)",
+                "code": 400
+            }), 400
             
     try:
         db.session.commit()
@@ -74,10 +121,19 @@ def update_profile():
                 
         db.session.commit()
         
-        return jsonify({"message": "Profile updated successfully", "profile": profile.to_dict()}), 200
+        return jsonify({
+            "success": True,
+            "message": "Profile updated successfully",
+            "data": profile.to_dict()
+        }), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Failed to update profile", "details": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "error": "Failed to update profile",
+            "details": str(e),
+            "code": 500
+        }), 500
 
 
 @jwt_required()
@@ -93,23 +149,40 @@ def get_sent_requests():
         r_dict['compatibility_score'] = compat.score if compat else None
         results.append(r_dict)
         
-    return jsonify(results), 200
+    return jsonify({
+        "success": True,
+        "message": "Sent requests retrieved successfully",
+        "data": results
+    }), 200
+
 
 @jwt_required()
 def send_interest_request(listing_id):
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
     if not user or user.role != 'tenant':
-        return jsonify({"error": "Forbidden: Only tenants can send interest requests"}), 403
+        return jsonify({
+            "success": False,
+            "error": "Forbidden: Only tenants can send interest requests",
+            "code": 403
+        }), 403
         
     listing = Listing.query.get(listing_id)
     if not listing:
-        return jsonify({"error": "Listing not found"}), 404
+        return jsonify({
+            "success": False,
+            "error": "Listing not found",
+            "code": 404
+        }), 404
         
     # Check if request already exists
     existing = InterestRequest.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
     if existing:
-        return jsonify({"error": "You have already sent an interest request for this listing."}), 400
+        return jsonify({
+            "success": False,
+            "error": "You have already sent an interest request for this listing.",
+            "code": 400
+        }), 400
         
     try:
         req = InterestRequest(tenant_id=user_id, listing_id=listing_id, status='pending')
@@ -119,8 +192,8 @@ def send_interest_request(listing_id):
         # Ensure compatibility score is generated
         compat = CompatibilityScore.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
         score = 0
+        profile = TenantProfile.query.filter_by(user_id=user_id).first()
         if not compat:
-            profile = TenantProfile.query.filter_by(user_id=user_id).first()
             if profile:
                 score, explanation, is_ai = calculate_compatibility(listing, profile)
                 compat = CompatibilityScore(
@@ -147,55 +220,72 @@ def send_interest_request(listing_id):
         db.session.commit()
         
         # Email notifications:
-        # 1. Standard email to Owner
-        # 2. If score > 80, triggers high compatibility email
         try:
-            from backend.services.email_service import notify_owner_of_high_compatibility_interest
+            from backend.services.email_service import notify_owner_of_interest
             owner_email = listing.owner_profile.user.email
             
-            if score and score >= 80:
-                notify_owner_of_high_compatibility_interest(
-                    owner_email=owner_email,
-                    tenant_email=user.email,
-                    listing_title=listing.title,
-                    score=score
-                )
-            else:
-                from backend.services.email_service import send_email
-                send_email(
-                    subject="🏠 New Interested Tenant Alert",
-                    recipient=owner_email,
-                    body_text=f"A tenant ({user.email}) has shown interest in your listing '{listing.title}'. Check your dashboard to view details.",
-                    body_html=f"<p>A tenant (<strong>{user.email}</strong>) has shown interest in your listing <strong>'{listing.title}'</strong>. Check your dashboard to view details.</p>"
-                )
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Failed to send email alerts: {str(e)}")
+            budget_min = profile.budget_min if profile else 0.0
+            budget_max = profile.budget_max if profile else 1000.0
+            move_in_date = profile.move_in_date.isoformat() if profile and profile.move_in_date else 'Flexible'
             
-        return jsonify({"message": "Interest request sent successfully", "request": req.to_dict()}), 201
+            notify_owner_of_interest(
+                owner_email=owner_email,
+                listing_title=listing.title,
+                tenant_email=user.email,
+                budget_min=budget_min,
+                budget_max=budget_max,
+                move_in_date=move_in_date,
+                score=score
+            )
+        except Exception as e:
+            logger.error(f"Failed to send email alerts: {str(e)}")
+            
+        return jsonify({
+            "success": True,
+            "message": "Interest request sent successfully",
+            "data": req.to_dict()
+        }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Failed to send interest request", "details": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "error": "Failed to send interest request",
+            "details": str(e),
+            "code": 500
+        }), 500
         
+
 @jwt_required()
 def get_compatibility(listing_id):
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
     if not user or user.role != 'tenant':
-        return jsonify({"error": "Unauthorized: Tenant role required"}), 403
+        return jsonify({
+            "success": False,
+            "error": "Unauthorized: Tenant role required",
+            "code": 403
+        }), 403
         
     listing = Listing.query.get(listing_id)
     if not listing:
-        return jsonify({"error": "Listing not found"}), 404
+        return jsonify({
+            "success": False,
+            "error": "Listing not found",
+            "code": 404
+        }), 404
         
     profile = TenantProfile.query.filter_by(user_id=user_id).first()
     if not profile:
-        return jsonify({"error": "Tenant profile not found"}), 404
+        return jsonify({
+            "success": False,
+            "error": "Tenant profile not found",
+            "code": 404
+        }), 404
         
-    # Check or compute compatibility score
-    compat = CompatibilityScore.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
-    if not compat:
-        try:
+    try:
+        # Check if compatibility score already pre-computed
+        compat = CompatibilityScore.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
+        if not compat:
             score, explanation, is_ai = calculate_compatibility(listing, profile)
             compat = CompatibilityScore(
                 tenant_id=user_id,
@@ -206,15 +296,23 @@ def get_compatibility(listing_id):
             )
             db.session.add(compat)
             db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": "Failed to calculate compatibility", "details": str(e)}), 500
             
-    # Check interest request status
-    req = InterestRequest.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
-    interest_status = req.status if req else 'none'
-    
-    return jsonify({
-        "compatibility": compat.to_dict(),
-        "interest_status": interest_status
-    }), 200
+        # Get interest request status if any
+        interest_req = InterestRequest.query.filter_by(tenant_id=user_id, listing_id=listing_id).first()
+        interest_status = interest_req.status if interest_req else 'none'
+        
+        return jsonify({
+            "success": True,
+            "message": "Compatibility check retrieved successfully",
+            "data": {
+                "compatibility": compat.to_dict(),
+                "interest_status": interest_status
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Failed to calculate compatibility",
+            "details": str(e),
+            "code": 500
+        }), 500

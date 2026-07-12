@@ -63,7 +63,7 @@ const SignupPage = () => {
           
           {/* Email field */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Email Address</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Email Address</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                 <Mail size={16} />
@@ -84,7 +84,7 @@ const SignupPage = () => {
 
           {/* Password field */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Password</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Password</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                 <Lock size={16} />
@@ -105,13 +105,13 @@ const SignupPage = () => {
 
           {/* Role selection */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">I am a...</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">I am a...</label>
             <div className="grid grid-cols-2 gap-3">
               <label 
                 className={`flex justify-center items-center py-2.5 rounded-xl border font-bold text-sm cursor-pointer transition-all
                   ${selectedRole === 'tenant' 
                     ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-slate-800 dark:text-blue-400' 
-                    : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-805'}`}
+                    : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
               >
                 <input
                   type="radio"
@@ -128,7 +128,7 @@ const SignupPage = () => {
                 className={`flex justify-center items-center py-2.5 rounded-xl border font-bold text-sm cursor-pointer transition-all
                   ${selectedRole === 'owner' 
                     ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-slate-800 dark:text-blue-400' 
-                    : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-805'}`}
+                    : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
               >
                 <input
                   type="radio"
@@ -149,7 +149,7 @@ const SignupPage = () => {
               
               {/* Contact phone */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Contact Phone Number</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Contact Phone Number</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                     <Phone size={16} />
@@ -167,7 +167,7 @@ const SignupPage = () => {
 
               {/* Company name */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-650 dark:text-slate-350 block">Company Name (Optional)</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Company Name (Optional)</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 dark:text-slate-500 pointer-events-none">
                     <Building size={16} />
@@ -209,7 +209,7 @@ const SignupPage = () => {
         {/* Footer Link */}
         <div className="text-center text-xs text-slate-500 dark:text-slate-400 font-medium">
           Already have an account?{' '}
-          <Link to="/login" className="font-extrabold text-pink-600 dark:text-pink-450 hover:underline">
+          <Link to="/login" className="font-extrabold text-pink-600 dark:text-pink-400 hover:underline">
             Sign In
           </Link>
         </div>

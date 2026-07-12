@@ -5,7 +5,9 @@ import { MapPin, DollarSign, Calendar, Sparkles } from 'lucide-react';
 const ListingCard = ({ listing }) => {
   const { id, title, rent, location, room_type, furnishing_status, available_from, images, compatibility } = listing;
 
-  const score = compatibility?.score;
+  const score = listing.compatibility_score !== undefined && listing.compatibility_score !== null 
+    ? listing.compatibility_score 
+    : compatibility?.score;
 
   // Determine styling based on match score
   let scoreColorClass = 'bg-slate-100 dark:bg-slate-800 text-slate-500';
@@ -44,19 +46,30 @@ const ListingCard = ({ listing }) => {
         
         {/* Room type & Furnishing Badges */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 text-[10px] font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-205 backdrop-blur-sm border border-white/20">
+          <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 text-[10px] font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200 backdrop-blur-sm border border-white/20">
             {room_type.replace('_', ' ')}
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 text-[10px] font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-205 backdrop-blur-sm border border-white/20">
+          <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 text-[10px] font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200 backdrop-blur-sm border border-white/20">
             {furnishing_status}
           </span>
         </div>
 
         {/* Compatibility badge */}
-        {score !== undefined && score !== null && (
-          <div className={`absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border backdrop-blur-md font-bold text-xs shadow-lg ${scoreColorClass} ${scoreBorderClass}`}>
-            <Sparkles size={12} className="animate-pulse" />
-            <span>{score}% Match</span>
+        {compatibility !== undefined && compatibility !== null && (
+          <div className={`absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border backdrop-blur-md font-bold text-xs shadow-lg
+            ${(score === 0 || compatibility.status === 'No preferences selected')
+              ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700' 
+              : scoreColorClass}
+            ${(score === 0 || compatibility.status === 'No preferences selected')
+              ? 'border-slate-200 dark:border-slate-700' 
+              : scoreBorderClass}`}
+          >
+            <Sparkles size={12} className={(score === 0 || compatibility.status === 'No preferences selected') ? 'text-slate-400' : 'animate-pulse'} />
+            <span>
+              {(score === 0 || compatibility.status === 'No preferences selected')
+                ? 'Add preferences to calculate AI Match'
+                : `${score}% Match`}
+            </span>
           </div>
         )}
       </div>
@@ -84,7 +97,7 @@ const ListingCard = ({ listing }) => {
         {/* Footer */}
         <div className="flex justify-between items-center mt-auto">
           <div className="flex items-baseline">
-            <span className="text-xl font-black text-slate-955 dark:text-white">${rent}</span>
+            <span className="text-xl font-black text-slate-950 dark:text-white">${rent}</span>
             <span className="text-xs font-semibold text-slate-400 ml-1">/mo</span>
           </div>
           <Link
