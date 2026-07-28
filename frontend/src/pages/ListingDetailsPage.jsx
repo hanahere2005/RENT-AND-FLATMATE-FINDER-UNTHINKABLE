@@ -6,22 +6,22 @@ import {
   Home, MapPin, DollarSign, Calendar, Sparkles, Check, 
   Phone, User, ArrowLeft, Loader2, Heart, ShieldCheck 
 } from 'lucide-react';
-import api from '../services/api';
+import api, { API_URL } from '../services/api';
 import LoadingSkeleton from '../components/LoadingSkeleton';
-
+ 
 const ListingDetailsPage = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-
+ 
   const [listing, setListing] = useState(null);
   const [compatScore, setCompatScore] = useState(null);
   const [interestStatus, setInterestStatus] = useState(null); // 'none', 'pending', 'accepted', 'rejected'
   
   const [loading, setLoading] = useState(true);
   const [submittingInterest, setSubmittingInterest] = useState(false);
-
+ 
   const fetchDetails = async () => {
     setLoading(true);
     try {
@@ -35,11 +35,11 @@ const ListingDetailsPage = () => {
           console.error("Failed to parse tenant filters from localStorage", e);
         }
       }
-
+ 
       // Get property info passing the params
       const res = await api.get(`/listings/${id}`, { params });
       setListing(res.data);
-
+ 
       // If user is a tenant, check interest status and compatibility passing the params
       if (user && user.role === 'tenant') {
         const compatRes = await api.get(`/tenant/compatibility/${id}`, { params });
@@ -53,11 +53,11 @@ const ListingDetailsPage = () => {
       setLoading(false);
     }
   };
-
+ 
   useEffect(() => {
     fetchDetails();
   }, [id, user]);
-
+ 
   // Express interest request submit
   const handleExpressInterest = async () => {
     if (!user) {
@@ -77,7 +77,7 @@ const ListingDetailsPage = () => {
       setSubmittingInterest(false);
     }
   };
-
+ 
   // Toggle booking status for owners
   const handleToggleBookingStatus = async () => {
     try {
@@ -90,7 +90,7 @@ const ListingDetailsPage = () => {
       showToast("Failed to update booking status", "error");
     }
   };
-
+ 
   // Delete listing permanently for owners
   const handleDeleteListing = async () => {
     if (window.confirm("Are you sure you want to delete this listing?\n\nThis action cannot be undone.")) {
@@ -104,11 +104,11 @@ const ListingDetailsPage = () => {
       }
     }
   };
-
+ 
   if (loading) {
     return <LoadingSkeleton type="details" />;
   }
-
+ 
   if (!listing) {
     return (
       <div className="text-center py-20 space-y-4">
@@ -119,11 +119,11 @@ const ListingDetailsPage = () => {
       </div>
     );
   }
-
+ 
   // Get image URL helper
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
-    return `http://127.0.0.1:5050/uploads/${imagePath.split('/').pop()}`;
+    return `${API_URL}/uploads/${imagePath.split('/').pop()}`;
   };
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, DollarSign, Calendar, Sparkles } from 'lucide-react';
+import { API_URL } from '../services/api';
 
 const ListingCard = ({ listing, filterQuery }) => {
   const { id, title, rent, location, room_type, furnishing_status, available_from, images, compatibility, is_filled } = listing;
@@ -30,7 +31,7 @@ const ListingCard = ({ listing, filterQuery }) => {
 
   // Fallback image if none uploaded
   const mainImage = images && images.length > 0 
-    ? `http://localhost:5050${images[0].image_url}` 
+    ? `${API_URL}${images[0].image_url}` 
     : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80';
 
   return (
